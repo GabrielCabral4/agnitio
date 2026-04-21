@@ -16,3 +16,5 @@ __pycache__/
 
 # Variáveis de ambiente
 .env
+node_modules/
+web/node_modules/
