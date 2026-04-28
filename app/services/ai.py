@@ -1,9 +1,14 @@
 import json
+import time
 from google import genai
+from google.genai.errors import APIError
 from app.config import settings
 
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
-MODEL = "gemini-2.5-flash"
+MODEL_PRIMARY = "gemini-2.5-flash"
+MODEL_FALLBACK = "gemini-1.5-flash"
+MAX_RETRIES = 3
+BASE_DELAY = 1  # seconds
 
 
 def _parse_json(text: str) -> dict | list:
@@ -14,19 +19,69 @@ def _parse_json(text: str) -> dict | list:
     return json.loads(cleaned)
 
 
+def _generate_with_retry(prompt: str, model: str = MODEL_PRIMARY) -> str:
+    """
+    Gera conteúdo com retry exponencial e fallback para modelo alternativo.
+    Lança HTTPException(status_code=503) se tudo falhar.
+    """
+    from fastapi import HTTPException
+
+    last_error = None
+
+    # Tenta com o modelo primário
+    for attempt in range(MAX_RETRIES):
+        try:
+            response = client.models.generate_content(model=model, contents=prompt)
+            return response.text
+        except APIError as e:
+            last_error = e
+            if e.code == 503 or "unavailable" in str(e).lower():
+                if attempt < MAX_RETRIES - 1:
+                    delay = BASE_DELAY * (2 ** attempt)
+                    time.sleep(delay)
+                    continue
+                # Esgotou tentativas com modelo primário, tenta fallback
+                break
+            else:
+                # Erro não recuperável
+                raise
+
+    # Tenta com modelo fallback
+    for attempt in range(MAX_RETRIES):
+        try:
+            response = client.models.generate_content(model=MODEL_FALLBACK, contents=prompt)
+            return response.text
+        except APIError as e:
+            last_error = e
+            if e.code == 503 or "unavailable" in str(e).lower():
+                if attempt < MAX_RETRIES - 1:
+                    delay = BASE_DELAY * (2 ** attempt)
+                    time.sleep(delay)
+                    continue
+                break
+
+    # Tudo falhou
+    raise HTTPException(
+        status_code=503,
+        detail="Serviço de IA temporariamente indisponível. Por favor, tente novamente em alguns instantes."
+    )
+
+
 def generate_study_material(content: str) -> dict:
     prompt = f"""
 Você é um assistente de estudos especializado em criar material didático de alta qualidade.
 
 TAREFAS:
-1. Crie 5-15 flashcards com perguntas conceituais e respostas explicativas
+1. Crie 5-15 flashcards com perguntas conceituais e respostas diretas
 2. Gere um resumo estruturado em parágrafos coerentes
 
 REGRAS PARA FLASHCARDS:
-- Frente: perguntas claras que testam compreensão, não apenas memorização
-- Verso: explicações completas mas concisas (2-4 frases)
-- Evite perguntas de sim/não
-- Priorize conceitos fundamentais do conteúdo
+- Frente: perguntas claras e objetivas que testam compreensão conceitual
+- Verso: respostas DIRETAS e CONCISAS (1-2 frases, máximo 40 palavras)
+- Cada flashcard deve testar UM único conceito
+- Evite perguntas de sim/não ou muito genéricas
+- Priorize conceitos fundamentais e definições-chave
+- Respostas devem caber em um cartão físico — seja sucinto, vá direto ao ponto
 
 REGRAS PARA RESUMO:
 - Escreva em português do Brasil
@@ -36,7 +91,7 @@ REGRAS PARA RESUMO:
 FORMATO DE SAÍDA (JSON válido, sem markdown, sem texto adicional):
 {{
   "flashcards": [
-    {{"front": "O que é X?", "back": "X é... porque..."}}
+    {{"front": "O que é X?", "back": "X é [definição direta]. [contexto opcional breve]."}}
   ],
   "summary": "texto do resumo aqui"
 }}
@@ -44,8 +99,8 @@ FORMATO DE SAÍDA (JSON válido, sem markdown, sem texto adicional):
 CONTEÚDO PARA ANALISAR:
 {content}
 """
-    response = client.models.generate_content(model=MODEL, contents=prompt)
-    return _parse_json(response.text)
+    response_text = _generate_with_retry(prompt)
+    return _parse_json(response_text)
 
 
 def generate_quiz(content: str) -> list:
@@ -81,8 +136,8 @@ FORMATO DE SAÍDA (JSON válido, sem markdown, sem texto adicional):
 CONTEÚDO PARA ANALISAR:
 {content}
 """
-    response = client.models.generate_content(model=MODEL, contents=prompt)
-    return _parse_json(response.text)
+    response_text = _generate_with_retry(prompt)
+    return _parse_json(response_text)
 
 
 def analyze_answers(questions: list, answers: list) -> dict:
@@ -126,5 +181,5 @@ FORMATO DE SAÍDA (JSON válido, sem markdown, sem texto adicional):
 QUESTÕES E RESPOSTAS:
 {pairs_text}
 """
-    response = client.models.generate_content(model=MODEL, contents=prompt)
-    return _parse_json(response.text)
+    response_text = _generate_with_retry(prompt)
+    return _parse_json(response_text)

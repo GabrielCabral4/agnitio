@@ -33,18 +33,21 @@ def create_session(session: SessionCreate, db: Session = Depends(get_db)):
 
 @router.post("/upload", response_model=SessionResponse)
 async def create_session_from_pdf(
-    title: str = Form(...),
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db),
+        title: str = Form(...),
+        file: UploadFile = File(...),
+        db: Session = Depends(get_db),
 ):
     if not PDF_SUPPORT:
         raise HTTPException(status_code=500, detail="Suporte a PDF não disponível")
+
     if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Apenas arquivos PDF são aceitos")
 
     contents = await file.read()
     reader = PdfReader(io.BytesIO(contents))
-    text = "\\n".join(page.extract_text() or "" for page in reader.pages)
+
+    text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    text = text.replace("\x00", "")
 
     if not text.strip():
         raise HTTPException(status_code=400, detail="Não foi possível extrair texto do PDF")
@@ -136,3 +139,14 @@ def get_session(session_id: str, db: Session = Depends(get_db)):
     if not db_session:
         raise HTTPException(status_code=404, detail="Sessão não encontrada")
     return db_session
+
+
+@router.get("/{session_id}/quiz-attempts", response_model=list[QuizAttemptResponse])
+def list_quiz_attempts(session_id: str, db: Session = Depends(get_db)):
+    attempts = (
+        db.query(QuizAttempt)
+        .filter(QuizAttempt.session_id == session_id, QuizAttempt.answers.isnot(None))
+        .order_by(QuizAttempt.created_at.asc())
+        .all()
+    )
+    return attempts
