@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api } from "@/api/api";
 import { ArrowLeft, FileText, Upload, Sparkles, Check } from "lucide-react";
 
 export default function NewSession() {

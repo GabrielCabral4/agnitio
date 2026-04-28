@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { api, Session } from "@/lib/api";
+import { api, Session } from "@/api/api";
 import { ArrowLeft, Sparkles, BookOpen, Brain, ChevronDown, RotateCcw } from "lucide-react";
 
 export default function SessionDetail() {
@@ -26,8 +26,11 @@ export default function SessionDetail() {
     try {
       const updated = await api.generateMaterial(id);
       setSession(updated);
-    } catch {
-      setError("Erro ao gerar material. Tente novamente.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erro ao gerar material";
+      setError(message.includes("IA temporariamente")
+        ? message
+        : "Erro ao gerar material. Tente novamente.");
     } finally {
       setGenerating(false);
     }
@@ -101,7 +104,7 @@ export default function SessionDetail() {
           <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 flex items-center justify-center">
             <Sparkles className="w-10 h-10 text-amber-500" />
           </div>
-          <h2 className="text-xl font-semibold mb-2">Material não gerado</h2>
+          <h2 className="text-xl font-semibold mb-2">Pronto(a) para gerar seu material?</h2>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">
             Gere flashcards e um resumo inteligente deste conteúdo usando nossa IA
           </p>
@@ -167,30 +170,30 @@ export default function SessionDetail() {
                 <div
                   key={i}
                   onClick={() => toggleFlip(i)}
-                  className={`flip-card h-40 cursor-pointer ${flipped[i] ? 'flipped' : ''}`}
+                  className={`flip-card cursor-pointer ${flipped[i] ? 'flipped' : ''}`}
                 >
                   <div className="flip-card-inner h-full">
                     {/* Front */}
-                    <div className="flip-card-front card p-5 h-full flex flex-col justify-center hover:border-indigo-500/30 transition-colors">
+                    <div className="flip-card-front card p-5 min-h-[180px] flex flex-col justify-center hover:border-indigo-500/30 transition-colors">
                       <div className="flex items-center gap-2 mb-3">
                         <span className="text-xs font-medium text-indigo-500 bg-indigo-500/10 px-2 py-1 rounded-full">
                           Frente
                         </span>
                       </div>
-                      <p className="font-medium text-base">{card.front}</p>
+                      <p className="font-medium text-base line-clamp-4">{card.front}</p>
                       <div className="flex items-center gap-2 mt-auto pt-4 text-xs text-muted-foreground">
                         <ChevronDown className="w-4 h-4" />
                         Clique para ver a resposta
                       </div>
                     </div>
                     {/* Back */}
-                    <div className="flip-card-back card p-5 h-full flex flex-col justify-center bg-linear-to-br from-indigo-500/5 to-purple-500/5">
+                    <div className="flip-card-back card p-5 min-h-[180px] flex flex-col justify-center bg-linear-to-br from-indigo-500/5 to-purple-500/5">
                       <div className="flex items-center gap-2 mb-3">
                         <span className="text-xs font-medium text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-full">
                           Verso
                         </span>
                       </div>
-                      <p className="text-muted-foreground">{card.back}</p>
+                      <p className="text-muted-foreground text-sm leading-relaxed">{card.back}</p>
                       <div className="flex items-center gap-1 mt-auto pt-4 text-xs text-indigo-500">
                         <RotateCcw className="w-3 h-3" />
                         Ocultar resposta

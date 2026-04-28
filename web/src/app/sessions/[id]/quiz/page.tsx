@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { api, QuizQuestion } from "@/lib/api";
-import { ArrowLeft, Brain, CheckCircle, XCircle, Trophy, RotateCcw, ArrowRight } from "lucide-react";
+import { api, QuizQuestion } from "@/api/api";
+import { ArrowLeft, Brain, CheckCircle, XCircle, Trophy, RotateCcw, ArrowRight, TrendingUp } from "lucide-react";
 
 interface QuizAttempt {
   id: string;
@@ -22,11 +22,23 @@ export default function QuizPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [history, setHistory] = useState<QuizAttempt[]>([]);
 
   useEffect(() => {
-    api.createQuiz(id)
-      .then(setAttempt)
-      .catch(() => setError("Erro ao gerar quiz."))
+    Promise.all([
+      api.createQuiz(id),
+      api.getQuizAttempts(id).catch(() => [])
+    ])
+      .then(([newAttempt, historyData]) => {
+        setAttempt(newAttempt);
+        setHistory(historyData);
+      })
+      .catch((err) => {
+        const message = err instanceof Error ? err.message : "Erro ao gerar quiz";
+        setError(message.includes("IA temporariamente")
+          ? message
+          : "Erro ao gerar quiz.");
+      })
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -49,8 +61,16 @@ export default function QuizPage() {
       const answerArray = attempt.questions.map((_, i) => answers[i]);
       const result = await api.submitQuiz(id, attempt.id, answerArray);
       setAttempt(result);
-    } catch {
-      setError("Erro ao enviar respostas. Tente novamente.");
+      // Recarrega o histórico com a nova tentativa
+      const updatedHistory = await api.getQuizAttempts(id);
+      setHistory(updatedHistory);
+      // Scroll para o topo para mostrar o feedback
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erro ao enviar respostas";
+      setError(message.includes("IA temporariamente")
+        ? message
+        : "Erro ao enviar respostas. Tente novamente.");
     } finally {
       setSubmitting(false);
     }
@@ -162,6 +182,131 @@ export default function QuizPage() {
             <h2 className="text-sm font-semibold">Feedback da IA</h2>
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed">{attempt.feedback}</p>
+        </div>
+      )}
+
+      {/* Performance History */}
+      {isFinished && history.length > 0 && (
+        <div className="card p-6 mb-8 animate-fade-in">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-emerald-500" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold">Histórico de Performance</h2>
+              <p className="text-xs text-muted-foreground">
+                {history.length} {history.length === 1 ? "tentativa" : "tentativas"}
+              </p>
+            </div>
+          </div>
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="bg-muted/50 rounded-xl p-4 text-center">
+              <p className="text-xs text-muted-foreground mb-1">Média</p>
+              <p className="text-2xl font-bold text-foreground">
+                {Math.round(history.reduce((acc, a) => acc + (a.score || 0), 0) / history.length / attempt.questions.length * 100)}%
+              </p>
+            </div>
+            <div className="bg-muted/50 rounded-xl p-4 text-center">
+              <p className="text-xs text-muted-foreground mb-1">Melhor</p>
+              <p className="text-2xl font-bold text-emerald-500">
+                {Math.round(Math.max(...history.map(a => (a.score || 0) / attempt.questions.length)) * 100)}%
+              </p>
+            </div>
+            <div className="bg-muted/50 rounded-xl p-4 text-center">
+              <p className="text-xs text-muted-foreground mb-1">Atual</p>
+              <p className="text-2xl font-bold text-indigo-500">
+                {attempt.score !== undefined ? Math.round((attempt.score / attempt.questions.length) * 100) : 0}%
+              </p>
+            </div>
+          </div>
+
+          {/* Chart */}
+          <div className="relative h-40">
+            <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+              {/* Grid lines */}
+              {[0, 25, 50, 75, 100].map(y => (
+                <line
+                  key={y}
+                  x1="0"
+                  y1={y}
+                  x2="100"
+                  y2={y}
+                  stroke="currentColor"
+                  strokeOpacity="0.1"
+                  strokeWidth="0.5"
+                />
+              ))}
+              {/* Area fill */}
+              <path
+                d={`
+                  M 0,100
+                  ${history.map((h, i) => {
+                    const x = (i / (history.length - 1 || 1)) * 100;
+                    const y = 100 - ((h.score || 0) / attempt.questions.length) * 100;
+                    return `L ${x},${y}`;
+                  }).join(" ")}
+                  L 100,100
+                  Z
+                `}
+                fill="url(#gradient)"
+                opacity="0.3"
+              />
+              {/* Line */}
+              <path
+                d={`
+                  M 0,${100 - ((history[0]?.score || 0) / attempt.questions.length) * 100}
+                  ${history.map((h, i) => {
+                    const x = (i / (history.length - 1 || 1)) * 100;
+                    const y = 100 - ((h.score || 0) / attempt.questions.length) * 100;
+                    return `L ${x},${y}`;
+                  }).join(" ")}
+                `}
+                fill="none"
+                stroke="url(#gradient)"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              {/* Points */}
+              {history.map((h, i) => {
+                const x = (i / (history.length - 1 || 1)) * 100;
+                const y = 100 - ((h.score || 0) / attempt.questions.length) * 100;
+                return (
+                  <circle
+                    key={h.id}
+                    cx={x}
+                    cy={y}
+                    r="4"
+                    fill="var(--color-card)"
+                    stroke="var(--color-primary)"
+                    strokeWidth="2"
+                  />
+                );
+              })}
+              <defs>
+                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="var(--color-primary)" />
+                  <stop offset="100%" stopColor="var(--color-accent)" />
+                </linearGradient>
+              </defs>
+            </svg>
+            {/* Y-axis labels */}
+            <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-muted-foreground -ml-6">
+              <span>100%</span>
+              <span>50%</span>
+              <span>0%</span>
+            </div>
+          </div>
+          {/* X-axis labels */}
+          <div className="flex justify-between mt-2 text-xs text-muted-foreground">
+            {history.map((h, i) => (
+              <span key={h.id}>
+                #{i + 1}
+              </span>
+            ))}
+          </div>
         </div>
       )}
 

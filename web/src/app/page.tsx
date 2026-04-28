@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { api, Session } from "@/lib/api";
+import { api, Session } from "@/api/api";
 import { Plus, FileText, Sparkles, Calendar, ChevronRight, Inbox } from "lucide-react";
 
 export default function Home() {
