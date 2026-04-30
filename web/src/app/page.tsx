@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api, Session } from "@/api/api";
-import { Plus, FileText, Sparkles, Calendar, ChevronRight, Inbox } from "lucide-react";
+import { Plus, FileText, Sparkles, Calendar, ChevronRight, Inbox, TrendingUp } from "lucide-react";
 
 export default function Home() {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -46,13 +46,22 @@ export default function Home() {
             </p>
           </div>
         </div>
-        <Link
-          href="/sessions/new"
-          className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all hover:-translate-y-0.5"
-        >
-          <Plus className="w-4 h-4" />
-          Nova sessão
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/analytics"
+            className="flex items-center gap-2 border-2 border-border text-muted-foreground text-sm font-medium px-5 py-2.5 rounded-xl hover:border-indigo-500/50 hover:text-indigo-500 transition-all"
+          >
+            <TrendingUp className="w-4 h-4" />
+            Analytics
+          </Link>
+          <Link
+            href="/sessions/new"
+            className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all hover:-translate-y-0.5"
+          >
+            <Plus className="w-4 h-4" />
+            Nova sessão
+          </Link>
+        </div>
       </div>
 
       {/* Loading State */}

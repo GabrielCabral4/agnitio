@@ -121,4 +121,89 @@ export const api = {
     if (!res.ok) throw new Error("Erro ao carregar histórico de quiz");
     return res.json();
   },
+
+  async getAnalytics(): Promise<{
+    total_sessions: number;
+    total_quizzes: number;
+    total_flashcards: number;
+    average_score: number;
+    best_score: number;
+    quizzes_today: number;
+    quizzes_this_week: number;
+    weekly_activity: { date: string; day: string; count: number }[];
+    recent_sessions: { id: string; title: string; source_type: string; created_at: string; quiz_count: number }[];
+  }> {
+    const res = await fetch(`${API_URL}/sessions/analytics`);
+    if (!res.ok) throw new Error("Erro ao carregar analytics");
+    return res.json();
+  },
+
+  async createReviewSession(sessionId: string): Promise<{
+    id: string;
+    material_id: string;
+    cards_due: {
+      id: string;
+      card_index: number;
+      front: string;
+      back: string;
+      ease_factor: number;
+      interval: number;
+      repetitions: number;
+      next_review_at: string;
+      last_review_at: string | null;
+    }[];
+    total_due: number;
+    stats: {
+      total: number;
+      due: number;
+      new: number;
+      mature: number;
+      average_ease_factor: number;
+      learned_percentage: number;
+    };
+  }> {
+    const res = await fetch(`${API_URL}/sessions/${sessionId}/review`, {
+      method: "POST",
+    });
+    if (!res.ok) throw new Error("Erro ao criar sessão de revisão");
+    return res.json();
+  },
+
+  async submitCardReview(
+    sessionId: string,
+    cardIndex: number,
+    rating: "again" | "hard" | "good" | "easy",
+    timeSpentMs: number = 0
+  ): Promise<{
+    id: string;
+    card_index: number;
+    front: string;
+    back: string;
+    ease_factor: number;
+    interval: number;
+    repetitions: number;
+    next_review_at: string;
+    last_review_at: string | null;
+  }> {
+    const res = await fetch(`${API_URL}/sessions/${sessionId}/review/${cardIndex}/submit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ card_index: cardIndex, rating, time_spent_ms: timeSpentMs }),
+    });
+    if (!res.ok) throw new Error("Erro ao submeter revisão");
+    return res.json();
+  },
+
+  async getReviewStats(sessionId: string): Promise<{
+    total: number;
+    due: number;
+    new: number;
+    mature: number;
+    average_ease_factor: number;
+    learned_percentage: number;
+  }> {
+    const res = await fetch(`${API_URL}/sessions/${sessionId}/review/stats`);
+    if (!res.ok) throw new Error("Erro ao carregar estatísticas de revisão");
+    return res.json();
+  },
 };

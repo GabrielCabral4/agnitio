@@ -1,12 +1,24 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List, Dict, Any
 
 
 class SessionCreate(BaseModel):
     title: str
     content: str
     source_type: str = "text"
+
+
+class AnalyticsData(BaseModel):
+    total_sessions: int
+    total_quizzes: int
+    total_flashcards: int
+    average_score: float
+    best_score: float
+    quizzes_today: int
+    quizzes_this_week: int
+    weekly_activity: List[Dict[str, Any]]
+    recent_sessions: List[Dict[str, Any]]
 
 
 class FlashCard(BaseModel):
@@ -55,3 +67,35 @@ class QuizAttemptResponse(BaseModel):
 
 class QuizSubmit(BaseModel):
     answers: list[int]
+
+
+class FlashCardReviewResponse(BaseModel):
+    id: str
+    card_index: int
+    front: str
+    back: str
+    ease_factor: int
+    interval: int
+    repetitions: int
+    next_review_at: datetime
+    last_review_at: datetime = None
+
+    class Config:
+        from_attributes = True
+
+
+class ReviewSessionResponse(BaseModel):
+    id: str
+    material_id: str
+    cards_due: list[FlashCardReviewResponse]
+    total_due: int
+    stats: dict
+
+    class Config:
+        from_attributes = True
+
+
+class ReviewSubmit(BaseModel):
+    card_index: int
+    rating: str  # "again", "hard", "good", "easy"
+    time_spent_ms: int = 0
