@@ -15,7 +15,7 @@ Quality ratings (0-5):
 - 5: Perfect response
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Tuple
 
 
@@ -34,6 +34,12 @@ class SM2Review:
         self.interval = interval  # Days
         self.repetitions = repetitions
         self.next_review_at = next_review_at
+
+
+def ensure_aware(dt: datetime) -> datetime:
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
 
 
 def calculate_sm2(
@@ -155,26 +161,14 @@ def get_cards_due_for_review(
     flashcard_reviews: list,
     limit: int = 20
 ) -> list:
-    """
-    Filter and sort flashcards that are due for review.
-
-    Args:
-        flashcard_reviews: List of FlashCardReview objects
-        limit: Maximum number of cards to return
-
-    Returns:
-        List of flashcard reviews due for review, sorted by priority
-    """
     now = datetime.now(timezone.utc)
 
-    # Filter cards that are due
     due_cards = [
         review for review in flashcard_reviews
-        if review.next_review_at <= now
+        if ensure_aware(review.next_review_at) <= now
     ]
 
-    # Sort by next_review_at (oldest first = highest priority)
-    due_cards.sort(key=lambda r: r.next_review_at)
+    due_cards.sort(key=lambda r: ensure_aware(r.next_review_at))
 
     return due_cards[:limit]
 
@@ -202,23 +196,13 @@ def calculate_maturity(interval: int) -> str:
 
 
 def get_study_stats(flashcard_reviews: list) -> dict:
-    """
-    Calculate study statistics for a set of flashcard reviews.
-
-    Args:
-        flashcard_reviews: List of FlashCardReview objects
-
-    Returns:
-        Dictionary with study statistics
-    """
     now = datetime.now(timezone.utc)
 
     total = len(flashcard_reviews)
-    due = sum(1 for r in flashcard_reviews if r.next_review_at <= now)
+    due = sum(1 for r in flashcard_reviews if ensure_aware(r.next_review_at) <= now)
     new = sum(1 for r in flashcard_reviews if r.repetitions == 0)
     mature = sum(1 for r in flashcard_reviews if r.interval >= 21)
 
-    # Calculate average ease factor
     avg_ef = sum(r.ease_factor for r in flashcard_reviews) / total if total > 0 else 250
 
     return {
@@ -226,6 +210,6 @@ def get_study_stats(flashcard_reviews: list) -> dict:
         "due": due,
         "new": new,
         "mature": mature,
-        "average_ease_factor": round(avg_ef / 100, 2),  # Convert back to float
+        "average_ease_factor": round(avg_ef / 100, 2),
         "learned_percentage": round((total - new) / total * 100, 1) if total > 0 else 0
     }

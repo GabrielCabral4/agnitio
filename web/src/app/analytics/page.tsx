@@ -68,7 +68,7 @@ export default function AnalyticsPage() {
       <div className="mb-10 animate-fade-in">
         <button
           onClick={() => router.push("/")}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
+          className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
         >
           <ArrowLeft className="w-4 h-4" />
           Voltar para home

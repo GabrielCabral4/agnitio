@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Text, DateTime, ForeignKey, Integer, JSON
+from sqlalchemy import Column, String, Text, DateTime, ForeignKey, Integer, JSON, UniqueConstraint
 from sqlalchemy.orm import relationship
 from app.database import Base
 import uuid
@@ -67,6 +67,8 @@ class FlashCardReview(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     material = relationship("StudyMaterial", back_populates="flashcard_reviews")
+
+    __table_args__ = (UniqueConstraint('material_id', 'card_index', name='uq_material_card'),)
 
 
 # Add reverse relationship to StudyMaterial

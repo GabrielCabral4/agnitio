@@ -78,7 +78,7 @@ class FlashCardReviewResponse(BaseModel):
     interval: int
     repetitions: int
     next_review_at: datetime
-    last_review_at: datetime = None
+    last_review_at: datetime | None = None
 
     class Config:
         from_attributes = True

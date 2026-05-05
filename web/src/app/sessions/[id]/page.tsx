@@ -13,12 +13,28 @@ export default function SessionDetail() {
   const [generating, setGenerating] = useState(false);
   const [flipped, setFlipped] = useState<Record<number, boolean>>({});
   const [error, setError] = useState("");
+  const [srsStats, setSrsStats] = useState<{
+    total: number;
+    due: number;
+    new: number;
+    mature: number;
+    average_ease_factor: number;
+    learned_percentage: number;
+  } | null>(null);
 
   useEffect(() => {
     api.getSession(id)
       .then(setSession)
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    if (session?.material) {
+      api.getReviewStats(id)
+        .then(setSrsStats)
+        .catch((err) => console.error("Erro ao carregar stats SRS:", err));
+    }
+  }, [id, session?.material]);
 
   async function handleGenerate() {
     setGenerating(true);
@@ -69,7 +85,7 @@ export default function SessionDetail() {
       <div className="mb-10 animate-fade-in">
         <button
           onClick={() => router.push("/")}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
+          className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
         >
           <ArrowLeft className="w-4 h-4" />
           Voltar
@@ -86,15 +102,26 @@ export default function SessionDetail() {
               </span>
             </div>
           </div>
-          {session.material && (
-            <button
-              onClick={() => router.push(`/sessions/${id}/quiz`)}
-              className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all hover:-translate-y-0.5"
-            >
-              <Brain className="w-4 h-4" />
-              Fazer quiz
-            </button>
-          )}
+            <div className="flex gap-2">
+              {session.material && (
+                <button
+                  onClick={() => router.push(`/sessions/${id}/quiz`)}
+                  className="flex items-center gap-2 cursor-pointer bg-linear-to-r from-indigo-500 to-purple-500 text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 hover:-translate-y-0.5 active:scale-95 active:opacity-90 transition-all"
+                >
+                  <Brain className="w-4 h-4" />
+                  Fazer quiz
+                </button>
+              )}
+              {session.material && (
+                <button
+                  onClick={() => router.push(`/sessions/${id}/review`)}
+                  className="flex items-center gap-2 cursor-pointer bg-white border border-slate-200 text-slate-700 text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-slate-50 transition-all hover:-translate-y-0.5 shadow-sm"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Revisar
+                </button>
+              )}
+            </div>
         </div>
       </div>
 
@@ -139,6 +166,57 @@ export default function SessionDetail() {
       {/* Material Content */}
       {session.material && (
         <div className="space-y-10">
+          {/* SRS Stats Section */}
+          <section className="card p-6 animate-fade-in" style={{ animationDelay: "0.05s" }}>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/10 to-indigo-500/10 flex items-center justify-center">
+                <Brain className="w-5 h-5 text-blue-500" />
+              </div>
+              <h2 className="text-lg font-semibold">Estatísticas de Memorização (SRS)</h2>
+            </div>
+
+            {srsStats ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="p-4 rounded-xl bg-muted/50 border border-slate-200/50">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Total de Cards</p>
+                  <p className="text-2xl font-bold">{srsStats.total}</p>
+                </div>
+                <div className="p-4 rounded-xl bg-muted/50 border border-slate-200/50">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Pendentes</p>
+                  <p className="text-2xl font-bold text-amber-600">{srsStats.due}</p>
+                </div>
+                <div className="p-4 rounded-xl bg-muted/50 border border-slate-200/50">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Novos</p>
+                  <p className="text-2xl font-bold text-blue-600">{srsStats.new}</p>
+                </div>
+                <div className="p-4 rounded-xl bg-muted/50 border border-slate-200/50">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Maduros</p>
+                  <p className="text-2xl font-bold text-emerald-600">{srsStats.mature}</p>
+                </div>
+                <div className="p-4 rounded-xl bg-muted/50 border border-slate-200/50">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Ease Factor Médio</p>
+                  <p className="text-2xl font-bold">{srsStats.average_ease_factor}</p>
+                </div>
+                <div className="p-4 rounded-xl bg-muted/50 border border-slate-200/50">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Aprendizado</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-2xl font-bold">{srsStats.learned_percentage}%</p>
+                    <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden ml-2">
+                      <div
+                        className="h-full bg-indigo-500"
+                        style={{ width: `${srsStats.learned_percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center py-8 text-muted-foreground italic text-sm">
+                Carregando estatísticas...
+              </div>
+            )}
+          </section>
+
           {/* Summary Section */}
           <section className="card p-6 animate-fade-in">
             <div className="flex items-center gap-3 mb-4">

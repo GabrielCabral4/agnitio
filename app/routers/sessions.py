@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from sqlalchemy import func, extract
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from app.database import get_db
 from app.models.session import StudySession, StudyMaterial, QuizAttempt, FlashCardReview
 from app.schemas.session import (
@@ -184,18 +185,21 @@ def create_review_session(session_id: str, db: Session = Depends(get_db)):
     # If no reviews exist, create them from the flashcards
     if not existing_reviews:
         for i, card in enumerate(db_session.material.flashcards):
-            review = FlashCardReview(
+            stmt = pg_insert(FlashCardReview).values(
                 material_id=db_session.material.id,
                 card_index=i,
                 front=card["front"],
                 back=card["back"],
-                ease_factor=250,  # Default EF = 2.5
+                ease_factor=250,
                 interval=0,
                 repetitions=0,
                 next_review_at=datetime.now(timezone.utc)
+            ).on_conflict_do_nothing(
+                index_elements=['material_id', 'card_index']
             )
-            db.add(review)
+            db.execute(stmt)
         db.commit()
+
         existing_reviews = db.query(FlashCardReview).filter(
             FlashCardReview.material_id == db_session.material.id
         ).all()
