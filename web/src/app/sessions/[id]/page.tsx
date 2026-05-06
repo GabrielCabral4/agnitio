@@ -121,6 +121,17 @@ export default function SessionDetail() {
                   Revisar
                 </button>
               )}
+              {session.material && (
+                <a
+                  href={`${process.env.NEXT_PUBLIC_API_URL}/sessions/${id}/export`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 cursor-pointer bg-slate-900 text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-slate-800 transition-all hover:-translate-y-0.5 shadow-sm"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  Exportar para PDF
+                </a>
+              )}
             </div>
         </div>
       </div>

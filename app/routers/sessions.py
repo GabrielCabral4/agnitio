@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
-from sqlalchemy import func, extract
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from app.database import get_db
 from app.models.session import StudySession, StudyMaterial, QuizAttempt, FlashCardReview
@@ -11,6 +11,7 @@ from app.schemas.session import (
 )
 from app.services.ai import generate_study_material, generate_quiz, analyze_answers
 from app.services import srs
+from app.services.pdf_export import generate_session_pdf
 from datetime import datetime, timedelta, timezone
 import io
 
@@ -368,6 +369,26 @@ def get_session(session_id: str, db: Session = Depends(get_db)):
     if not db_session:
         raise HTTPException(status_code=404, detail="Sessão não encontrada")
     return db_session
+
+
+@router.get("/{session_id}/export")
+def export_session_pdf(session_id: str, db: Session = Depends(get_db)):
+    db_session = db.query(StudySession).filter(StudySession.id == session_id).first()
+    if not db_session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    try:
+        pdf_bytes = generate_session_pdf(db_session)
+        filename = db_session.title.replace(" ", "_").lower()
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={filename}.pdf"},
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating PDF: {str(e)}")
 
 
 @router.get("/{session_id}/quiz-attempts", response_model=list[QuizAttemptResponse])
