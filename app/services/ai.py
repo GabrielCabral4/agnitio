@@ -1,5 +1,7 @@
 import json
 import time
+from typing import Optional
+
 from google import genai
 from google.genai.errors import APIError
 from app.config import settings
@@ -67,12 +69,13 @@ def _generate_with_retry(prompt: str, model: str = MODEL_PRIMARY) -> str:
     )
 
 
-def generate_study_material(content: str) -> dict:
+def generate_study_material(content: str, flashcard_count: Optional[int] = None) -> dict:
+    count_instruction = f"Crie exatamente {flashcard_count} flashcards" if flashcard_count else "Crie 5-15 flashcards"
     prompt = f"""
 Você é um assistente de estudos especializado em criar material didático de alta qualidade.
 
 TAREFAS:
-1. Crie 5-15 flashcards com perguntas conceituais e respostas diretas
+1. {count_instruction} com perguntas conceituais e respostas diretas
 2. Gere um resumo estruturado em parágrafos coerentes
 
 REGRAS PARA FLASHCARDS:

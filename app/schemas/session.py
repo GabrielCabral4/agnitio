@@ -7,6 +7,7 @@ class SessionCreate(BaseModel):
     title: str
     content: str
     source_type: str = "text"
+    flashcard_count: Optional[int] = None
 
 
 class AnalyticsData(BaseModel):
