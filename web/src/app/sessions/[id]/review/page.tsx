@@ -14,6 +14,7 @@ import {
   Calendar,
   Flame
 } from "lucide-react";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 interface FlashCard {
   id: string;
@@ -45,6 +46,7 @@ interface ReviewSession {
 type Rating = "again" | "hard" | "good" | "easy";
 
 export default function ReviewPage() {
+  const { isLoading, isAuthenticated } = useRequireAuth();
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [session, setSession] = useState<ReviewSession | null>(null);
@@ -105,6 +107,14 @@ export default function ReviewPage() {
     if (interval < 7) return "Jovem";
     if (interval < 30) return "Maduro";
     return "Muito Maduro";
+  }
+
+  if (isLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
 
   if (loading) {

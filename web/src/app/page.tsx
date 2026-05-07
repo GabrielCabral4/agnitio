@@ -4,16 +4,29 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api, Session } from "@/api/api";
 import { Plus, FileText, Sparkles, Calendar, ChevronRight, Inbox, TrendingUp } from "lucide-react";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const { isLoading, isAuthenticated } = useRequireAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.listSessions()
-      .then(setSessions)
-      .finally(() => setLoading(false));
-  }, []);
+    if (isAuthenticated) {
+      api.listSessions()
+        .then(setSessions)
+        .finally(() => setLoading(false));
+    }
+  }, [isAuthenticated]);
+
+  if (isLoading || (!isAuthenticated && !isLoading)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-12">

@@ -14,8 +14,10 @@ import {
   Flame,
   ArrowLeft
 } from "lucide-react";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 export default function AnalyticsPage() {
+  const { isLoading, isAuthenticated } = useRequireAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<{
@@ -36,6 +38,14 @@ export default function AnalyticsPage() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  if (isLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (loading) {
     return (

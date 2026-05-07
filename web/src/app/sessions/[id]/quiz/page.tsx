@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api, QuizQuestion } from "@/api/api";
 import { ArrowLeft, Brain, CheckCircle, XCircle, Trophy, RotateCcw, ArrowRight, TrendingUp } from "lucide-react";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { toast } from "sonner";
 
 interface QuizAttempt {
   id: string;
@@ -15,6 +17,7 @@ interface QuizAttempt {
 }
 
 export default function QuizPage() {
+  const { isLoading, isAuthenticated } = useRequireAuth();
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [attempt, setAttempt] = useState<QuizAttempt | null>(null);
@@ -35,9 +38,9 @@ export default function QuizPage() {
       })
       .catch((err) => {
         const message = err instanceof Error ? err.message : "Erro ao gerar quiz";
-        setError(message.includes("IA temporariamente")
+        toast.error(message.includes("IA temporariamente")
           ? message
-          : "Erro ao gerar quiz.");
+          : "Erro ao gerar quiz. Tente novamente.");
       })
       .finally(() => setLoading(false));
   }, [id]);
@@ -66,9 +69,10 @@ export default function QuizPage() {
       setHistory(updatedHistory);
       // Scroll para o topo para mostrar o feedback
       window.scrollTo({ top: 0, behavior: "smooth" });
+      toast.success("Quiz enviado com sucesso!");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erro ao enviar respostas";
-      setError(message.includes("IA temporariamente")
+      toast.error(message.includes("IA temporariamente")
         ? message
         : "Erro ao enviar respostas. Tente novamente.");
     } finally {
@@ -77,6 +81,14 @@ export default function QuizPage() {
   }
 
   const isFinished = !!attempt?.answers;
+
+  if (isLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (loading) {
     return (

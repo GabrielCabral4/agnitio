@@ -4,15 +4,18 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api, Session } from "@/api/api";
 import { ArrowLeft, Sparkles, BookOpen, Brain, ChevronDown, RotateCcw } from "lucide-react";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { toast } from "sonner";
 
 export default function SessionDetail() {
+  const { isLoading, isAuthenticated } = useRequireAuth();
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [flashcardCount, setFlashcardCount] = useState(10);
   const [flipped, setFlipped] = useState<Record<number, boolean>>({});
-  const [error, setError] = useState("");
   const [srsStats, setSrsStats] = useState<{
     total: number;
     due: number;
@@ -38,13 +41,13 @@ export default function SessionDetail() {
 
   async function handleGenerate() {
     setGenerating(true);
-    setError("");
     try {
-      const updated = await api.generateMaterial(id);
+      const updated = await api.generateMaterial(id, flashcardCount);
       setSession(updated);
+      toast.success("Material gerado com sucesso!");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erro ao gerar material";
-      setError(message.includes("IA temporariamente")
+      toast.error(message.includes("IA temporariamente")
         ? message
         : "Erro ao gerar material. Tente novamente.");
     } finally {
@@ -55,6 +58,14 @@ export default function SessionDetail() {
   function toggleFlip(index: number) {
     console.log("Flipping card:", index, "current state:", flipped[index]);
     setFlipped((prev) => ({ ...prev, [index]: !prev[index] }));
+  }
+
+  if (isLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
 
   if (loading) {
@@ -122,15 +133,45 @@ export default function SessionDetail() {
                 </button>
               )}
               {session.material && (
-                <a
-                  href={`${process.env.NEXT_PUBLIC_API_URL}/sessions/${id}/export`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={async () => {
+                    try {
+                      const token = localStorage.getItem("agnitio_token");
+                      if (!token) {
+                        toast.error("Você precisa estar autenticado para exportar");
+                        return;
+                      }
+
+                      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sessions/${id}/export`, {
+                        headers: {
+                          "Authorization": `Bearer ${token}`
+                        }
+                      });
+
+                      if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+                        throw new Error(errorData.detail || "Erro ao exportar PDF");
+                      }
+
+                      const blob = await response.blob();
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `${session.title.replace(/\s+/g, "_").toLowerCase()}.pdf`;
+                      document.body.appendChild(a);
+                      a.click();
+                      window.URL.revokeObjectURL(url);
+                      document.body.removeChild(a);
+                      toast.success("Exportação iniciada!");
+                    } catch (err) {
+                      toast.error(err instanceof Error ? err.message : "Erro ao exportar PDF");
+                    }
+                  }}
                   className="flex items-center gap-2 cursor-pointer bg-slate-900 text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-slate-800 transition-all hover:-translate-y-0.5 shadow-sm"
                 >
                   <BookOpen className="w-4 h-4" />
                   Exportar para PDF
-                </a>
+                </button>
               )}
             </div>
         </div>
@@ -146,15 +187,26 @@ export default function SessionDetail() {
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">
             Gere flashcards e um resumo inteligente deste conteúdo usando nossa IA
           </p>
-          {error && (
-            <p className="text-sm text-red-500 mb-4 bg-red-500/5 px-4 py-2 rounded-lg inline-block">
-              {error}
-            </p>
-          )}
+
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <label htmlFor="card-count" className="text-sm font-medium text-muted-foreground">
+              Quantidade de flashcards:
+            </label>
+            <input
+              id="card-count"
+              type="number"
+              min="1"
+              max="30"
+              value={flashcardCount}
+              onChange={(e) => setFlashcardCount(parseInt(e.target.value) || 1)}
+              className="w-20 px-3 py-1.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+            />
+          </div>
+
           <button
             onClick={handleGenerate}
             disabled={generating}
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium px-8 py-3 rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none"
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium px-8 py-3 rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none cursor-pointer"
           >
             {generating ? (
               <>

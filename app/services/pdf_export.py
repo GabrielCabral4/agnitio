@@ -10,8 +10,6 @@ def generate_session_pdf(session: StudySession):
     last_attempt = None
     if session.quiz_attempts:
         last_attempt = sorted(session.quiz_attempts, key=lambda x: x.created_at, reverse=True)[0]
-    else:
-        raise ValueError("Session has no quiz attempts.")
 
     html_content = f"""
     <!DOCTYPE html>

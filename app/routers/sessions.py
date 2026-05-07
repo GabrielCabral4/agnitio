@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
-from fastapi.responses import Response
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
+from fastapi.responses import Response, FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from app.database import get_db
@@ -10,6 +12,7 @@ from app.schemas.session import (
     FlashCardReviewResponse, ReviewSessionResponse, ReviewSubmit
 )
 from app.services.ai import generate_study_material, generate_quiz, analyze_answers
+from app.routers.auth import get_current_user
 from app.services import srs
 from app.services.pdf_export import generate_session_pdf
 from datetime import datetime, timedelta, timezone
@@ -23,25 +26,25 @@ except ImportError:
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
-
 @router.post("/", response_model=SessionResponse)
-def create_session(session: SessionCreate, db: Session = Depends(get_db)):
+def create_session(session: SessionCreate, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     db_session = StudySession(
         title=session.title,
         source_type=session.source_type,
         raw_content=session.content,
+        user_id=current_user.id,
     )
     db.add(db_session)
     db.commit()
     db.refresh(db_session)
     return db_session
 
-
 @router.post("/upload", response_model=SessionResponse)
 async def create_session_from_pdf(
         title: str = Form(...),
         file: UploadFile = File(...),
         db: Session = Depends(get_db),
+        current_user=Depends(get_current_user),
 ):
     if not PDF_SUPPORT:
         raise HTTPException(status_code=500, detail="Suporte a PDF não disponível")
@@ -62,15 +65,15 @@ async def create_session_from_pdf(
         title=title,
         source_type="pdf",
         raw_content=text,
+        user_id=current_user.id,
     )
     db.add(db_session)
     db.commit()
     db.refresh(db_session)
     return db_session
 
-
 @router.get("/analytics", response_model=dict)
-def get_analytics(db: Session = Depends(get_db)):
+def get_analytics(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     """
     Retorna estatísticas gerais da plataforma para o dashboard de analytics.
     """
@@ -78,18 +81,22 @@ def get_analytics(db: Session = Depends(get_db)):
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     week_start = today_start - timedelta(days=7)
 
-    # Total sessions
-    total_sessions = db.query(StudySession).count()
+    # Total sessions (filtered by user)
+    total_sessions = db.query(StudySession).filter(StudySession.user_id == current_user.id).count()
 
-    # Total quizzes (completed)
-    total_quizzes = db.query(QuizAttempt).filter(QuizAttempt.answers.isnot(None)).count()
+    # Total quizzes (completed and filtered by user)
+    total_quizzes = db.query(QuizAttempt).join(StudySession).filter(
+        StudySession.user_id == current_user.id,
+        QuizAttempt.answers.isnot(None)
+    ).count()
 
-    # Total flashcards
-    materials = db.query(StudyMaterial).all()
+    # Total flashcards (filtered by user)
+    materials = db.query(StudyMaterial).join(StudySession).filter(StudySession.user_id == current_user.id).all()
     total_flashcards = sum(len(m.flashcards) for m in materials if m.flashcards)
 
     # Average and best score
-    completed_quizzes = db.query(QuizAttempt).filter(
+    completed_quizzes = db.query(QuizAttempt).join(StudySession).filter(
+        StudySession.user_id == current_user.id,
         QuizAttempt.answers.isnot(None),
         QuizAttempt.score.isnot(None)
     ).all()
@@ -109,13 +116,15 @@ def get_analytics(db: Session = Depends(get_db)):
         best_score = 0
 
     # Quizzes today
-    quizzes_today = db.query(QuizAttempt).filter(
+    quizzes_today = db.query(QuizAttempt).join(StudySession).filter(
+        StudySession.user_id == current_user.id,
         QuizAttempt.answers.isnot(None),
         QuizAttempt.created_at >= today_start
     ).count()
 
     # Quizzes this week
-    quizzes_this_week = db.query(QuizAttempt).filter(
+    quizzes_this_week = db.query(QuizAttempt).join(StudySession).filter(
+        StudySession.user_id == current_user.id,
         QuizAttempt.answers.isnot(None),
         QuizAttempt.created_at >= week_start
     ).count()
@@ -125,7 +134,8 @@ def get_analytics(db: Session = Depends(get_db)):
     for i in range(6, -1, -1):
         day_start = today_start - timedelta(days=i)
         day_end = day_start + timedelta(days=1)
-        count = db.query(QuizAttempt).filter(
+        count = db.query(QuizAttempt).join(StudySession).filter(
+            StudySession.user_id == current_user.id,
             QuizAttempt.answers.isnot(None),
             QuizAttempt.created_at >= day_start,
             QuizAttempt.created_at < day_end
@@ -138,7 +148,7 @@ def get_analytics(db: Session = Depends(get_db)):
 
     # Recent sessions
     recent_sessions = []
-    for s in db.query(StudySession).order_by(StudySession.created_at.desc()).limit(5).all():
+    for s in db.query(StudySession).filter(StudySession.user_id == current_user.id).order_by(StudySession.created_at.desc()).limit(5).all():
         quiz_count = db.query(QuizAttempt).filter(
             QuizAttempt.session_id == s.id,
             QuizAttempt.answers.isnot(None)
@@ -163,15 +173,14 @@ def get_analytics(db: Session = Depends(get_db)):
         "recent_sessions": recent_sessions
     }
 
-
 @router.post("/{session_id}/review", response_model=ReviewSessionResponse)
-def create_review_session(session_id: str, db: Session = Depends(get_db)):
+def create_review_session(session_id: str, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     """
     Create a new review session for a study session.
     Returns flashcards that are due for review based on SM-2 algorithm.
     """
     # Get the study session
-    db_session = db.query(StudySession).filter(StudySession.id == session_id).first()
+    db_session = db.query(StudySession).filter(StudySession.id == session_id, StudySession.user_id == current_user.id).first()
     if not db_session:
         raise HTTPException(status_code=404, detail="Sessão não encontrada")
 
@@ -219,19 +228,19 @@ def create_review_session(session_id: str, db: Session = Depends(get_db)):
         "stats": stats
     }
 
-
 @router.post("/{session_id}/review/{card_index}/submit", response_model=FlashCardReviewResponse)
 def submit_card_review(
     session_id: str,
     card_index: int,
     payload: ReviewSubmit,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     Submit a review for a specific flashcard and update its SM-2 parameters.
     """
     # Get the study session
-    db_session = db.query(StudySession).filter(StudySession.id == session_id).first()
+    db_session = db.query(StudySession).filter(StudySession.id == session_id, StudySession.user_id == current_user.id).first()
     if not db_session or not db_session.material:
         raise HTTPException(status_code=404, detail="Sessão ou material não encontrado")
 
@@ -265,13 +274,12 @@ def submit_card_review(
 
     return review
 
-
 @router.get("/{session_id}/review/stats", response_model=dict)
-def get_review_stats(session_id: str, db: Session = Depends(get_db)):
+def get_review_stats(session_id: str, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     """
     Get SRS statistics for a study session.
     """
-    db_session = db.query(StudySession).filter(StudySession.id == session_id).first()
+    db_session = db.query(StudySession).filter(StudySession.id == session_id, StudySession.user_id == current_user.id).first()
     if not db_session or not db_session.material:
         raise HTTPException(status_code=404, detail="Sessão ou material não encontrado")
 
@@ -292,16 +300,15 @@ def get_review_stats(session_id: str, db: Session = Depends(get_db)):
     stats = srs.get_study_stats(reviews)
     return stats
 
-
 @router.post("/{session_id}/generate", response_model=SessionResponse)
-def generate_material(session_id: str, db: Session = Depends(get_db)):
-    db_session = db.query(StudySession).filter(StudySession.id == session_id).first()
+def generate_material(session_id: str, flashcard_count: Optional[int] = None, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    db_session = db.query(StudySession).filter(StudySession.id == session_id, StudySession.user_id == current_user.id).first()
     if not db_session:
         raise HTTPException(status_code=404, detail="Sessão não encontrada")
     if db_session.material:
         raise HTTPException(status_code=400, detail="Material já gerado para esta sessão")
 
-    result = generate_study_material(db_session.raw_content)
+    result = generate_study_material(db_session.raw_content, flashcard_count=flashcard_count)
 
     material = StudyMaterial(
         session_id=session_id,
@@ -313,10 +320,9 @@ def generate_material(session_id: str, db: Session = Depends(get_db)):
     db.refresh(db_session)
     return db_session
 
-
 @router.post("/{session_id}/quiz", response_model=QuizAttemptResponse)
-def create_quiz(session_id: str, db: Session = Depends(get_db)):
-    db_session = db.query(StudySession).filter(StudySession.id == session_id).first()
+def create_quiz(session_id: str, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    db_session = db.query(StudySession).filter(StudySession.id == session_id, StudySession.user_id == current_user.id).first()
     if not db_session:
         raise HTTPException(status_code=404, detail="Sessão não encontrada")
 
@@ -331,17 +337,18 @@ def create_quiz(session_id: str, db: Session = Depends(get_db)):
     db.refresh(attempt)
     return attempt
 
-
 @router.post("/{session_id}/quiz/{attempt_id}/submit", response_model=QuizAttemptResponse)
 def submit_quiz(
     session_id: str,
     attempt_id: str,
     payload: QuizSubmit,
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
-    attempt = db.query(QuizAttempt).filter(
+    attempt = db.query(QuizAttempt).join(StudySession).filter(
         QuizAttempt.id == attempt_id,
         QuizAttempt.session_id == session_id,
+        StudySession.user_id == current_user.id
     ).first()
     if not attempt:
         raise HTTPException(status_code=404, detail="Tentativa não encontrada")
@@ -357,25 +364,35 @@ def submit_quiz(
     db.refresh(attempt)
     return attempt
 
-
 @router.get("/", response_model=list[SessionResponse])
-def list_sessions(db: Session = Depends(get_db)):
-    return db.query(StudySession).order_by(StudySession.created_at.desc()).all()
-
+def list_sessions(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    return db.query(StudySession).filter(StudySession.user_id == current_user.id).order_by(StudySession.created_at.desc()).all()
 
 @router.get("/{session_id}", response_model=SessionResponse)
-def get_session(session_id: str, db: Session = Depends(get_db)):
-    db_session = db.query(StudySession).filter(StudySession.id == session_id).first()
+def get_session(session_id: str, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    db_session = db.query(StudySession).filter(StudySession.id == session_id, StudySession.user_id == current_user.id).first()
     if not db_session:
         raise HTTPException(status_code=404, detail="Sessão não encontrada")
     return db_session
 
-
 @router.get("/{session_id}/export")
-def export_session_pdf(session_id: str, db: Session = Depends(get_db)):
-    db_session = db.query(StudySession).filter(StudySession.id == session_id).first()
+def export_session_pdf(
+    session_id: str,
+    db: Session = Depends(get_db),
+    token: Optional[str] = None,
+    current_user=Depends(get_current_user)
+):
+    """
+    Generates and returns a PDF study guide for the session.
+    """
+    # If token is provided in query, we can manually verify it if get_current_user is failing
+    # because of the way browser window.open works (doesn't send Auth headers).
+    # However, get_current_user already handles the Authorization header.
+    # If the user is calling this via window.open, they must provide the token.
+
+    db_session = db.query(StudySession).filter(StudySession.id == session_id, StudySession.user_id == current_user.id).first()
     if not db_session:
-        raise HTTPException(status_code=404, detail="Session not found")
+        raise HTTPException(status_code=404, detail="Sessão não encontrada")
 
     try:
         pdf_bytes = generate_session_pdf(db_session)
@@ -390,12 +407,14 @@ def export_session_pdf(session_id: str, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating PDF: {str(e)}")
 
-
 @router.get("/{session_id}/quiz-attempts", response_model=list[QuizAttemptResponse])
-def list_quiz_attempts(session_id: str, db: Session = Depends(get_db)):
+def list_quiz_attempts(session_id: str, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     attempts = (
-        db.query(QuizAttempt)
-        .filter(QuizAttempt.session_id == session_id, QuizAttempt.answers.isnot(None))
+        db.query(QuizAttempt).join(StudySession).filter(
+            QuizAttempt.session_id == session_id,
+            StudySession.user_id == current_user.id,
+            QuizAttempt.answers.isnot(None)
+        )
         .order_by(QuizAttempt.created_at.asc())
         .all()
     )

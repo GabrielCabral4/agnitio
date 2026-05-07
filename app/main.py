@@ -11,6 +11,7 @@ if sys.platform == "win32":
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers.sessions import router as sessions_router
+from app.routers.auth import router as auth_router
 
 app = FastAPI(title="Agnitio API", version="1.0.0")
 
@@ -22,6 +23,7 @@ app.add_middleware(
 )
 
 app.include_router(sessions_router)
+app.include_router(auth_router)
 @app.get("/health")
 def health():
     return {"status": "ok"}

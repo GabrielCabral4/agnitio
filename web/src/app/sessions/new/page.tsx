@@ -4,35 +4,45 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/api/api";
 import { ArrowLeft, FileText, Upload, Sparkles, Check } from "lucide-react";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { toast } from "sonner";
 
 export default function NewSession() {
+  const { isLoading, isAuthenticated } = useRequireAuth();
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [mode, setMode] = useState<"text" | "pdf">("text");
   const [content, setContent] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function handleSubmit() {
-    if (!title.trim()) { setError("Título é obrigatório"); return; }
-    if (mode === "text" && !content.trim()) { setError("Conteúdo é obrigatório"); return; }
-    if (mode === "pdf" && !file) { setError("Selecione um arquivo PDF"); return; }
+    if (!title.trim()) { toast.error("Título é obrigatório"); return; }
+    if (mode === "text" && !content.trim()) { toast.error("Conteúdo é obrigatório"); return; }
+    if (mode === "pdf" && !file) { toast.error("Selecione um arquivo PDF"); return; }
 
     setLoading(true);
-    setError("");
 
     try {
       const session = mode === "text"
         ? await api.createSession({ title, content, source_type: "text" })
         : await api.uploadPDF(title, file!);
 
+      toast.success("Sessão criada com sucesso!");
       router.push(`/sessions/${session.id}`);
     } catch (e) {
-      setError("Erro ao criar sessão. Tente novamente.");
+      toast.error("Erro ao criar sessão. Tente novamente.");
       setLoading(false);
     }
+  }
+
+  if (isLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
 
   return (
@@ -80,7 +90,7 @@ export default function NewSession() {
           <div className="flex gap-3">
             <button
               onClick={() => setMode("text")}
-              className={`flex-1 flex items-center justify-center gap-2 px-5 py-4 rounded-xl border-2 transition-all ${
+              className={`flex-1 flex items-center justify-center gap-2 px-5 py-4 rounded-xl border-2 transition-all cursor-pointer ${
                 mode === "text"
                   ? "border-indigo-500 bg-indigo-500/5 text-foreground"
                   : "border-border hover:border-muted-foreground/50 text-muted-foreground"
@@ -91,7 +101,7 @@ export default function NewSession() {
             </button>
             <button
               onClick={() => setMode("pdf")}
-              className={`flex-1 flex items-center justify-center gap-2 px-5 py-4 rounded-xl border-2 transition-all ${
+              className={`flex-1 flex items-center justify-center gap-2 px-5 py-4 rounded-xl border-2 transition-all cursor-pointer ${
                 mode === "pdf"
                   ? "border-indigo-500 bg-indigo-500/5 text-foreground"
                   : "border-border hover:border-muted-foreground/50 text-muted-foreground"
@@ -167,18 +177,11 @@ export default function NewSession() {
           </div>
         )}
 
-        {/* Error Message */}
-        {error && (
-          <div className="card p-4 border-red-500/20 bg-red-500/5 animate-scale-in">
-            <p className="text-sm text-red-500">{error}</p>
-          </div>
-        )}
-
         {/* Submit Button */}
         <button
           onClick={handleSubmit}
           disabled={loading}
-          className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-4 rounded-xl text-base font-medium hover:shadow-lg hover:shadow-indigo-500/25 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none animate-fade-in"
+          className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-4 rounded-xl text-base font-medium hover:shadow-lg hover:shadow-indigo-500/25 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none animate-fade-in cursor-pointer"
         >
           {loading ? (
             <span className="flex items-center justify-center gap-2">

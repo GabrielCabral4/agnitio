@@ -13,6 +13,7 @@ class StudySession(Base):
     __tablename__ = "study_sessions"
 
     id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey("users.id"), nullable=True) # Nullable for migration of existing data
     title = Column(String(255), nullable=False)
     source_type = Column(String(10), nullable=False)
     raw_content = Column(Text, nullable=False)
@@ -20,6 +21,7 @@ class StudySession(Base):
 
     material = relationship("StudyMaterial", back_populates="session", uselist=False)
     quiz_attempts = relationship("QuizAttempt", back_populates="session")
+    user = relationship("User", back_populates="sessions")
 
 
 class StudyMaterial(Base):
