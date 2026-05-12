@@ -19,8 +19,8 @@ class StudySession(Base):
     raw_content = Column(Text, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
-    material = relationship("StudyMaterial", back_populates="session", uselist=False)
-    quiz_attempts = relationship("QuizAttempt", back_populates="session")
+    material = relationship("StudyMaterial", back_populates="session", uselist=False, cascade="all, delete-orphan")
+    quiz_attempts = relationship("QuizAttempt", back_populates="session", cascade="all, delete-orphan")
     user = relationship("User", back_populates="sessions")
 
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api, Session } from "@/api/api";
-import { Plus, FileText, Sparkles, Calendar, ChevronRight, Inbox, TrendingUp } from "lucide-react";
+import { Plus, FileText, Sparkles, Calendar, ChevronRight, Inbox, TrendingUp, Trash2, AlertCircle } from "lucide-react";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useRouter } from "next/navigation";
 
@@ -11,6 +11,7 @@ export default function Home() {
   const { isLoading, isAuthenticated } = useRequireAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -19,6 +20,18 @@ export default function Home() {
         .finally(() => setLoading(false));
     }
   }, [isAuthenticated]);
+
+  const confirmDelete = async () => {
+    if (!sessionToDelete) return;
+    const id = sessionToDelete;
+    setSessionToDelete(null);
+    try {
+      await api.deleteSession(id);
+      setSessions(prev => prev.filter(s => s.id !== id));
+    } catch (e) {
+      alert("Erro ao excluir sessão");
+    }
+  };
 
   if (isLoading || (!isAuthenticated && !isLoading)) {
     return (
@@ -151,6 +164,16 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setSessionToDelete(session.id);
+                      }}
+                      className="p-2 text-muted-foreground cursor-pointer hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                      title="Excluir sessão"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Calendar className="w-3.5 h-3.5" />
                       {new Date(session.created_at).toLocaleDateString("pt-BR")}
@@ -162,6 +185,39 @@ export default function Home() {
             </li>
           ))}
         </ul>
+      )}
+
+      {/* Confirmation Modal */}
+      {sessionToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-gray-900 w-full max-w-md rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 animate-scale-in overflow-hidden">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                <AlertCircle className="w-8 h-8 text-red-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                Excluir Sessão
+              </h3>
+              <p className="text-muted-foreground mb-8">
+                Tem certeza que deseja excluir esta sessão? Esta ação não pode ser desfeita e todos os materiais e quizzes associados serão removidos.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setSessionToDelete(null)}
+                  className="flex-1 px-4 py-3 text-sm cursor-pointer font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 px-4 py-3 text-sm cursor-pointer font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 transition-all shadow-lg shadow-red-500/20"
+                >
+                  Excluir
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

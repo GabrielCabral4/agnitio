@@ -368,6 +368,19 @@ def submit_quiz(
 def list_sessions(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     return db.query(StudySession).filter(StudySession.user_id == current_user.id).order_by(StudySession.created_at.desc()).all()
 
+@router.delete("/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_session(session_id: str, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    """
+    Deletes a study session.
+    """
+    db_session = db.query(StudySession).filter(StudySession.id == session_id, StudySession.user_id == current_user.id).first()
+    if not db_session:
+        raise HTTPException(status_code=404, detail="Sessão não encontrada")
+
+    db.delete(db_session)
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
 @router.get("/{session_id}", response_model=SessionResponse)
 def get_session(session_id: str, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     db_session = db.query(StudySession).filter(StudySession.id == session_id, StudySession.user_id == current_user.id).first()

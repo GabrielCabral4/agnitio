@@ -232,6 +232,14 @@ export const api = {
     return handleResponse(res);
   },
 
+  async deleteSession(sessionId: string): Promise<void> {
+    const res = await fetch(`${API_URL}/sessions/${sessionId}`, {
+      method: "DELETE",
+      headers: getAuthHeader() as AuthHeaders,
+    });
+    if (!res.ok) throw new Error("Erro ao excluir sessão");
+  },
+
   async login(data: { email: string; password: string }): Promise<{ access_token: string; token_type: string }> {
     const res = await fetch(`${API_URL}/auth/login`, {
       method: "POST",
