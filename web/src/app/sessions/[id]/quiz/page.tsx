@@ -430,7 +430,7 @@ export default function QuizPage() {
           </button>
           <button
             onClick={() => router.push(`/sessions/${id}`)}
-            className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-4 rounded-xl text-sm font-medium hover:shadow-lg hover:shadow-indigo-500/25 transition-all hover:-translate-y-0.5"
+            className="flex-1 flex items-center justify-center gap-2 cursor-pointer bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-4 rounded-xl text-sm font-medium hover:shadow-lg hover:shadow-indigo-500/25 transition-all hover:-translate-y-0.5"
           >
             Voltar para sessão
             <ArrowRight className="w-4 h-4" />

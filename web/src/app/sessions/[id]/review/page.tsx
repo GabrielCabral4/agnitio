@@ -172,7 +172,7 @@ export default function ReviewPage() {
           <div className="flex gap-3 justify-center">
             <button
               onClick={() => router.push(`/sessions/${id}`)}
-              className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-sm font-medium px-6 py-3 rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all hover:-translate-y-0.5"
+              className="flex items-center gap-2 cursor-pointer bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-sm font-medium px-6 py-3 rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all hover:-translate-y-0.5"
             >
               <ArrowLeft className="w-4 h-4" />
               Voltar para sessão
@@ -191,7 +191,7 @@ export default function ReviewPage() {
       <div className="mb-8 animate-fade-in">
         <button
           onClick={() => router.push(`/sessions/${id}`)}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
+          className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
         >
           <ArrowLeft className="w-4 h-4" />
           Voltar para sessão
