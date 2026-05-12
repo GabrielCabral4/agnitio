@@ -109,7 +109,7 @@ export default function LoginPage() {
             <button
               onClick={handleDemoLogin}
               disabled={loading}
-              className="text-sm text-slate-400 hover:text-indigo-600 transition-colors font-medium"
+              className="text-sm text-slate-400 cursor-pointer hover:text-indigo-600 transition-colors font-medium"
             >
               Experimentar como convidado
             </button>
