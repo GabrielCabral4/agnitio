@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api, Session } from "@/api/api";
-import { ArrowLeft, Sparkles, BookOpen, Brain, ChevronDown, RotateCcw } from "lucide-react";
+import { ArrowLeft, Sparkles, BookOpen, Brain, ChevronDown, RotateCcw, Info } from "lucide-react";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { toast } from "sonner";
 
@@ -101,23 +101,23 @@ export default function SessionDetail() {
           <ArrowLeft className="w-4 h-4" />
           Voltar
         </button>
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/25">
               <BookOpen className="w-6 h-6 text-white" />
             </div>
-            <div>
-              <h1 className="text-2xl font-bold">{session.title}</h1>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold truncate max-w-[200px] sm:max-w-xs md:max-w-md">{session.title}</h1>
               <span className="text-xs text-muted-foreground uppercase tracking-wide">
                 {session.source_type}
               </span>
             </div>
           </div>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 w-full sm:w-auto">
               {session.material && (
                 <button
                   onClick={() => router.push(`/sessions/${id}/quiz`)}
-                  className="flex items-center gap-2 cursor-pointer bg-linear-to-r from-indigo-500 to-purple-500 text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 hover:-translate-y-0.5 active:scale-95 active:opacity-90 transition-all"
+                  className="flex-1 sm:flex-none items-center justify-center gap-2 cursor-pointer bg-linear-to-r from-indigo-500 to-purple-500 text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 hover:-translate-y-0.5 active:scale-95 active:opacity-90 transition-all"
                 >
                   <Brain className="w-4 h-4" />
                   Fazer quiz
@@ -126,7 +126,7 @@ export default function SessionDetail() {
               {session.material && (
                 <button
                   onClick={() => router.push(`/sessions/${id}/review`)}
-                  className="flex items-center gap-2 cursor-pointer bg-white border border-slate-200 text-slate-700 text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-slate-50 transition-all hover:-translate-y-0.5 shadow-sm"
+                  className="flex-1 sm:flex-none items-center justify-center gap-2 cursor-pointer bg-white border border-slate-200 text-slate-700 text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-slate-50 transition-all hover:-translate-y-0.5 shadow-sm"
                 >
                   <RotateCcw className="w-4 h-4" />
                   Revisar
@@ -167,10 +167,10 @@ export default function SessionDetail() {
                       toast.error(err instanceof Error ? err.message : "Erro ao exportar PDF");
                     }
                   }}
-                  className="flex items-center gap-2 cursor-pointer bg-slate-900 text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-slate-800 transition-all hover:-translate-y-0.5 shadow-sm"
+                  className="flex-1 sm:flex-none items-center justify-center gap-2 cursor-pointer bg-slate-900 text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-slate-800 transition-all hover:-translate-y-0.5 shadow-sm"
                 >
                   <BookOpen className="w-4 h-4" />
-                  Exportar para PDF
+                  Exportar PDF
                 </button>
               )}
             </div>
@@ -185,7 +185,7 @@ export default function SessionDetail() {
           </div>
           <h2 className="text-xl font-semibold mb-2">Pronto(a) para gerar seu material?</h2>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-            Gere flashcards e um resumo inteligente deste conteúdo usando nossa IA
+            Gere flashcards e um resumo inteligente deste conteúdo usando IA
           </p>
 
           <div className="flex items-center justify-center gap-3 mb-6">
@@ -235,33 +235,87 @@ export default function SessionDetail() {
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/10 to-indigo-500/10 flex items-center justify-center">
                 <Brain className="w-5 h-5 text-blue-500" />
               </div>
-              <h2 className="text-lg font-semibold">Estatísticas de Memorização (SRS)</h2>
+              <h2 className="text-lg font-semibold">Estatísticas de Memorização</h2>
             </div>
 
             {srsStats ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <div className="p-4 rounded-xl bg-muted/50 border border-slate-200/50">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Total de Cards</p>
+                  <div className="flex items-center gap-1 mb-1">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Total de Cards</p>
+                    <div className="group relative">
+                      <Info className="w-3 h-3 text-muted-foreground cursor-help hover:text-indigo-500 transition-colors" />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden sm:group-hover:block w-48 p-2 bg-slate-900 text-white text-[10px] rounded-lg shadow-xl z-50 pointer-events-none">
+                        Quantidade total de flashcards gerados para esta sessão.
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+                      </div>
+                    </div>
+                  </div>
                   <p className="text-2xl font-bold">{srsStats.total}</p>
                 </div>
                 <div className="p-4 rounded-xl bg-muted/50 border border-slate-200/50">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Pendentes</p>
+                  <div className="flex items-center gap-1 mb-1">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Pendentes</p>
+                    <div className="group relative">
+                      <Info className="w-3 h-3 text-muted-foreground cursor-help hover:text-indigo-500 transition-colors" />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden sm:group-hover:block w-48 p-2 bg-slate-900 text-white text-[10px] rounded-lg shadow-xl z-50 pointer-events-none">
+                        Cards que precisam de revisão hoje com base no algoritmo de repetição espaçada.
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+                      </div>
+                    </div>
+                  </div>
                   <p className="text-2xl font-bold text-amber-600">{srsStats.due}</p>
                 </div>
                 <div className="p-4 rounded-xl bg-muted/50 border border-slate-200/50">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Novos</p>
+                  <div className="flex items-center gap-1 mb-1">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Novos</p>
+                    <div className="group relative">
+                      <Info className="w-3 h-3 text-muted-foreground cursor-help hover:text-indigo-500 transition-colors" />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden sm:group-hover:block w-48 p-2 bg-slate-900 text-white text-[10px] rounded-lg shadow-xl z-50 pointer-events-none">
+                        Cards que ainda não foram revisados nenhuma vez.
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+                      </div>
+                    </div>
+                  </div>
                   <p className="text-2xl font-bold text-blue-600">{srsStats.new}</p>
                 </div>
                 <div className="p-4 rounded-xl bg-muted/50 border border-slate-200/50">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Maduros</p>
+                  <div className="flex items-center gap-1 mb-1">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Consolidados</p>
+                    <div className="group relative">
+                      <Info className="w-3 h-3 text-muted-foreground cursor-help hover:text-indigo-500 transition-colors" />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden sm:group-hover:block w-48 p-2 bg-slate-900 text-white text-[10px] rounded-lg shadow-xl z-50 pointer-events-none">
+                        Cards com intervalo de revisão superior a 21 dias, indicando forte memorização.
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+                      </div>
+                    </div>
+                  </div>
                   <p className="text-2xl font-bold text-emerald-600">{srsStats.mature}</p>
                 </div>
                 <div className="p-4 rounded-xl bg-muted/50 border border-slate-200/50">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Ease Factor Médio</p>
+                  <div className="flex items-center gap-1 mb-1">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Facilidade Média</p>
+                    <div className="group relative">
+                      <Info className="w-3 h-3 text-muted-foreground cursor-help hover:text-indigo-500 transition-colors" />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden sm:group-hover:block w-48 p-2 bg-slate-900 text-white text-[10px] rounded-lg shadow-xl z-50 pointer-events-none">
+                        Média de facilidade dos cards. Valores maiores indicam que o conteúdo é mais fácil de lembrar.
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+                      </div>
+                    </div>
+                  </div>
                   <p className="text-2xl font-bold">{srsStats.average_ease_factor}</p>
                 </div>
                 <div className="p-4 rounded-xl bg-muted/50 border border-slate-200/50">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Aprendizado</p>
+                  <div className="flex items-center gap-1 mb-1">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Progresso de Revisão</p>
+                    <div className="group relative">
+                      <Info className="w-3 h-3 text-muted-foreground cursor-help hover:text-indigo-500 transition-colors" />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden sm:group-hover:block w-48 p-2 bg-slate-900 text-white text-[10px] rounded-lg shadow-xl z-50 pointer-events-none">
+                        Percentual de cards que já foram revisados ao menos uma vez.
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+                      </div>
+                    </div>
+                  </div>
                   <div className="flex items-center gap-2">
                     <p className="text-2xl font-bold">{srsStats.learned_percentage}%</p>
                     <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden ml-2">
@@ -306,7 +360,7 @@ export default function SessionDetail() {
                 </p>
               </div>
             </div>
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
               {session.material.flashcards.map((card, i) => (
                 <div
                   key={i}
@@ -315,7 +369,7 @@ export default function SessionDetail() {
                 >
                   <div className="flip-card-inner h-full">
                     {/* Front */}
-                    <div className="flip-card-front card p-5 min-h-[180px] flex flex-col justify-center hover:border-indigo-500/30 transition-colors">
+                    <div className="flip-card-front card p-4 sm:p-5 min-h-[140px] sm:min-h-[180px] flex flex-col justify-center hover:border-indigo-500/30 transition-colors">
                       <div className="flex items-center gap-2 mb-3">
                         <span className="text-xs font-medium text-indigo-500 bg-indigo-500/10 px-2 py-1 rounded-full">
                           Frente

@@ -5,8 +5,23 @@ const getAuthHeader = () => {
   return token ? { "Authorization": `Bearer ${token}` } : {};
 };
 
-// Define a type for the headers to be compatible with fetch's HeadersInit
 type AuthHeaders = Record<string, string>;
+
+async function handleResponse(res: Response) {
+  if (res.ok) return res.json();
+
+  let detail = "Ocorreu um erro inesperado";
+  try {
+    const errorData = await res.json();
+    if (errorData && typeof errorData.detail === "string") {
+      detail = errorData.detail;
+    }
+  } catch (e) {
+    // Response was not JSON
+  }
+
+  throw new Error(detail);
+}
 
 export interface FlashCard {
   front: string;
@@ -48,16 +63,14 @@ export const api = {
     const res = await fetch(`${API_URL}/sessions/`, {
       headers: getAuthHeader() as AuthHeaders,
     });
-    if (!res.ok) throw new Error("Erro ao listar sessões");
-    return res.json();
+    return handleResponse(res);
   },
 
   async getSession(id: string): Promise<Session> {
     const res = await fetch(`${API_URL}/sessions/${id}`, {
       headers: getAuthHeader() as AuthHeaders,
     });
-    if (!res.ok) throw new Error("Sessão não encontrada");
-    return res.json();
+    return handleResponse(res);
   },
 
   async createSession(data: {
@@ -70,8 +83,7 @@ export const api = {
       headers: { ...getAuthHeader(), "Content-Type": "application/json" } as AuthHeaders,
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error("Erro ao criar sessão");
-    return res.json();
+    return handleResponse(res);
   },
 
   async uploadPDF(title: string, file: File): Promise<Session> {
@@ -83,8 +95,7 @@ export const api = {
       headers: getAuthHeader() as AuthHeaders,
       body: form,
     });
-    if (!res.ok) throw new Error("Erro ao fazer upload do PDF");
-    return res.json();
+    return handleResponse(res);
   },
 
   async generateMaterial(sessionId: string, flashcardCount: number): Promise<Session> {
@@ -95,8 +106,7 @@ export const api = {
     if (res.status === 503) {
       throw new Error("Serviço de IA temporariamente indisponível. Tente novamente em instantes.");
     }
-    if (!res.ok) throw new Error("Erro ao gerar material");
-    return res.json();
+    return handleResponse(res);
   },
 
   async createQuiz(sessionId: string): Promise<QuizAttempt> {
@@ -107,8 +117,7 @@ export const api = {
     if (res.status === 503) {
       throw new Error("Serviço de IA temporariamente indisponível. Tente novamente em instantes.");
     }
-    if (!res.ok) throw new Error("Erro ao gerar quiz");
-    return res.json();
+    return handleResponse(res);
   },
 
   async submitQuiz(
@@ -127,16 +136,14 @@ export const api = {
     if (res.status === 503) {
       throw new Error("Serviço de IA temporariamente indisponível. Tente novamente em instantes.");
     }
-    if (!res.ok) throw new Error("Erro ao submeter quiz");
-    return res.json();
+    return handleResponse(res);
   },
 
   async getQuizAttempts(sessionId: string): Promise<QuizAttempt[]> {
     const res = await fetch(`${API_URL}/sessions/${sessionId}/quiz-attempts`, {
       headers: getAuthHeader() as AuthHeaders,
     });
-    if (!res.ok) throw new Error("Erro ao carregar histórico de quiz");
-    return res.json();
+    return handleResponse(res);
   },
 
   async getAnalytics(): Promise<{
@@ -153,8 +160,7 @@ export const api = {
     const res = await fetch(`${API_URL}/sessions/analytics`, {
       headers: getAuthHeader() as AuthHeaders,
     });
-    if (!res.ok) throw new Error("Erro ao carregar analytics");
-    return res.json();
+    return handleResponse(res);
   },
 
   async createReviewSession(sessionId: string): Promise<{
@@ -185,8 +191,7 @@ export const api = {
       method: "POST",
       headers: getAuthHeader() as AuthHeaders,
     });
-    if (!res.ok) throw new Error("Erro ao criar sessão de revisão");
-    return res.json();
+    return handleResponse(res);
   },
 
   async submitCardReview(
@@ -210,8 +215,7 @@ export const api = {
       headers: { ...getAuthHeader(), "Content-Type": "application/json" } as AuthHeaders,
       body: JSON.stringify({ card_index: cardIndex, rating, time_spent_ms: timeSpentMs }),
     });
-    if (!res.ok) throw new Error("Erro ao submeter revisão");
-    return res.json();
+    return handleResponse(res);
   },
 
   async getReviewStats(sessionId: string): Promise<{
@@ -225,8 +229,7 @@ export const api = {
     const res = await fetch(`${API_URL}/sessions/${sessionId}/review/stats`, {
       headers: getAuthHeader() as AuthHeaders,
     });
-    if (!res.ok) throw new Error("Erro ao carregar estatísticas de revisão");
-    return res.json();
+    return handleResponse(res);
   },
 
   async login(data: { email: string; password: string }): Promise<{ access_token: string; token_type: string }> {
@@ -235,8 +238,7 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error("Erro ao fazer login");
-    return res.json();
+    return handleResponse(res);
   },
 
   async loginDemo(): Promise<{ access_token: string; token_type: string }> {
@@ -244,8 +246,7 @@ export const api = {
       method: "GET",
       headers: getAuthHeader() as AuthHeaders,
     });
-    if (!res.ok) throw new Error("Erro ao acessar conta demo");
-    return res.json();
+    return handleResponse(res);
   },
 
   async signup(data: { email: string; password: string }): Promise<{ id: string; email: string; created_at: string }> {
@@ -254,7 +255,6 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error("Erro ao criar conta");
-    return res.json();
+    return handleResponse(res);
   },
 };

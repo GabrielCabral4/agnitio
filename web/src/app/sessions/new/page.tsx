@@ -32,7 +32,8 @@ export default function NewSession() {
       toast.success("Sessão criada com sucesso!");
       router.push(`/sessions/${session.id}`);
     } catch (e) {
-      toast.error("Erro ao criar sessão. Tente novamente.");
+      const errorMessage = e instanceof Error ? e.message : "Erro ao criar sessão. Tente novamente.";
+      toast.error(errorMessage);
       setLoading(false);
     }
   }
