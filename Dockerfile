@@ -1,5 +1,17 @@
 FROM python:3.11-slim
 
+# Install system dependencies required by WeasyPrint
+RUN apt-get update && apt-get install -y \
+    libgobject-2.0-0 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libcairo2 \
+    libgdk-pixbuf2.0-0 \
+    libffi-dev \
+    shared-mime-info \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uv/bin/uv
 
@@ -8,13 +20,10 @@ ENV PATH="/uv/bin:$PATH"
 
 WORKDIR /app
 
-# Copy dependency files first to leverage Docker cache
 COPY pyproject.toml uv.lock ./
 
-# Install dependencies using uv
 RUN uv sync --frozen
 
-# Copy the rest of the application
 COPY . .
 
 ENV PYTHONPATH=/app
