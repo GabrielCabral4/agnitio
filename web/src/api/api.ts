@@ -99,7 +99,7 @@ export const api = {
   },
 
   async generateMaterial(sessionId: string, flashcardCount: number): Promise<Session> {
-    const res = await fetch(`${API_URL}/sessions/${sessionId}/generate`, {
+    const res = await fetch(`${API_URL}/sessions/${sessionId}/generate?flashcard_count=${flashcardCount}`, {
       method: "POST",
       headers: getAuthHeader() as AuthHeaders,
     });
@@ -155,7 +155,6 @@ export const api = {
     quizzes_today: number;
     quizzes_this_week: number;
     weekly_activity: { date: string; day: string; count: number }[];
-    recent_sessions: { id: string; title: string; source_type: string; created_at: string; quiz_count: number }[];
   }> {
     const res = await fetch(`${API_URL}/sessions/analytics`, {
       headers: getAuthHeader() as AuthHeaders,

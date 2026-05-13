@@ -70,12 +70,13 @@ def _generate_with_retry(prompt: str, model: str = MODEL_PRIMARY) -> str:
 
 
 def generate_study_material(content: str, flashcard_count: Optional[int] = None) -> dict:
-    count_instruction = f"Crie exatamente {flashcard_count} flashcards" if flashcard_count else "Crie 5-15 flashcards"
+    count_instruction = f"Crie EXATAMENTE {flashcard_count} flashcards" if flashcard_count else "Crie entre 5 e 15 flashcards"
     prompt = f"""
 Você é um assistente de estudos especializado em criar material didático de alta qualidade.
 
 TAREFAS:
-1. {count_instruction} com perguntas conceituais e respostas diretas
+1. {count_instruction} com perguntas conceituais e respostas diretas.
+   IMPORTANTE: O número de flashcards deve ser rigorosamente {flashcard_count if flashcard_count else 'entre 5 e 15'}. Não gere mais nem menos que isso.
 2. Gere um resumo estruturado em parágrafos coerentes
 
 REGRAS PARA FLASHCARDS:
@@ -103,7 +104,13 @@ CONTEÚDO PARA ANALISAR:
 {content}
 """
     response_text = _generate_with_retry(prompt)
-    return _parse_json(response_text)
+    result = _parse_json(response_text)
+
+    # Garante que a quantidade de flashcards seja exatamente a solicitada, se especificada
+    if flashcard_count and "flashcards" in result and isinstance(result["flashcards"], list):
+        result["flashcards"] = result["flashcards"][:flashcard_count]
+
+    return result
 
 
 def generate_quiz(content: str) -> list:
