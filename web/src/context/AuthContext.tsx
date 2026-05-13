@@ -1,6 +1,5 @@
 "use client";
-
-import { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState } from "react";
 import { useRouter } from "next/navigation";
 
 interface AuthContextType {
@@ -9,23 +8,21 @@ interface AuthContextType {
   login: (token: string) => void;
   logout: () => void;
   isLoading: boolean;
-  setLoading: (loading: boolean) => void;
+  setLoading: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setLoading] = useState(true);
-  const router = useRouter();
-
-  useEffect(() => {
-    const storedToken = localStorage.getItem("agnitio_token");
-    if (storedToken) {
-      setToken(storedToken);
+  const [token, setToken] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("agnitio_token");
     }
-    setLoading(false);
-  }, []);
+    return null;
+  });
+
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   function login(newToken: string) {
     localStorage.setItem("agnitio_token", newToken);
@@ -40,7 +37,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ token, isAuthenticated: !!token, login, logout, isLoading, setLoading }}>
+    <AuthContext.Provider
+      value={{
+        token,
+        isAuthenticated: !!token,
+        login,
+        logout,
+        isLoading,
+        setLoading: setIsLoading
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
