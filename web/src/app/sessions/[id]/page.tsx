@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api, Session } from "@/api/api";
-import { ArrowLeft, Sparkles, BookOpen, Brain, ChevronDown, RotateCcw, Info } from "lucide-react";
+import { ArrowLeft, Sparkles, BookOpen, Brain, ChevronDown, RotateCcw, Info, X } from "lucide-react";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { toast } from "sonner";
 
@@ -57,14 +57,13 @@ export default function SessionDetail() {
   }
 
   function toggleFlip(index: number) {
-    console.log("Flipping card:", index, "current state:", flipped[index]);
     setFlipped((prev) => ({ ...prev, [index]: !prev[index] }));
   }
 
   if (isLoading || !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"/>
       </div>
     );
   }
@@ -354,7 +353,7 @@ export default function SessionDetail() {
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/10 to-purple-500/10 flex items-center justify-center">
                 <Brain className="w-5 h-5 text-violet-500" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <h2 className="text-lg font-semibold">Flashcards</h2>
                 <p className="text-xs text-muted-foreground">
                   {session.material.flashcards.length} cards • clique para revelar
@@ -400,6 +399,33 @@ export default function SessionDetail() {
               ))}
             </div>
           </section>
+        </div>
+      )}
+
+      {/* Info Modal */}
+      {infoText && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm cursor-pointer"
+            onClick={() => setInfoText(null)}
+          />
+          <div className="relative w-full max-w-md card p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2 text-indigo-600">
+                <Info className="w-5 h-5" />
+                <span className="font-semibold">Informação</span>
+              </div>
+              <button
+                onClick={() => setInfoText(null)}
+                className="p-1 rounded-full hover:bg-slate-100 transition-colors text-muted-foreground"
+              >
+                <X className="w-5 h-5 cursor-pointer" />
+              </button>
+            </div>
+            <p className="text-muted-foreground leading-relaxed">
+              {infoText}
+            </p>
+          </div>
         </div>
       )}
     </div>

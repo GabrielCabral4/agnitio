@@ -12,7 +12,8 @@ import {
   BookOpen,
   Brain,
   Calendar,
-  Flame
+  Flame,
+  Info
 } from "lucide-react";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 
@@ -56,6 +57,7 @@ export default function ReviewPage() {
   const [completed, setCompleted] = useState(false);
   const [startTime, setStartTime] = useState<number>(0);
   const [reviewedCount, setReviewedCount] = useState(0);
+  const [infoText, setInfoText] = useState<string | null>(null);
 
   useEffect(() => {
     api.createReviewSession(id)
@@ -139,31 +141,67 @@ export default function ReviewPage() {
           </div>
           <h2 className="text-xl font-semibold mb-2">
             {session?.cards_due.length === 0
-              ? "Nada para revisar!"
+              ? "Tudo em dia! 🚀"
               : "Revisão completa!"}
           </h2>
-          <p className="text-muted-foreground mb-6">
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
             {session?.cards_due.length === 0
-              ? "Todos os flashcards estão em dia. Volte mais tarde!"
+              ? "O sistema de repetição espaçada (SRS) utiliza o algoritmo SM-2 para estimar sua curva de retenção. Como a probabilidade de lembrança ainda é alta, o algoritmo agenda a próxima revisão apenas quando você está prestes a esquecer. Isso evita o cansaço, otimiza o aprendizado e maximiza a memória de longo prazo. Você verá um alerta no seu dashboard assim que houver novos cards para revisar."
               : `Você revisou ${reviewedCount} flashcard${reviewedCount === 1 ? "" : "s"}.`}
           </p>
 
           {session && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              <div className="bg-muted/50 rounded-xl p-4">
-                <p className="text-xs text-muted-foreground mb-1">Total</p>
+              <div className="bg-muted/50 rounded-xl p-4 relative">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs text-muted-foreground">Total</p>
+                  <Info
+                    className="w-3 h-3 text-muted-foreground cursor-pointer hover:text-indigo-500 transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setInfoText("Quantidade total de flashcards gerados para esta sessão.");
+                    }}
+                  />
+                </div>
                 <p className="text-2xl font-bold">{session.stats.total}</p>
               </div>
-              <div className="bg-muted/50 rounded-xl p-4">
-                <p className="text-xs text-muted-foreground mb-1">Aprendidos</p>
+              <div className="bg-muted/50 rounded-xl p-4 relative">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs text-muted-foreground">Aprendidos</p>
+                  <Info
+                    className="w-3 h-3 text-muted-foreground cursor-pointer hover:text-indigo-500 transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setInfoText("Percentual de cards que já foram revisados ao menos uma vez.");
+                    }}
+                  />
+                </div>
                 <p className="text-2xl font-bold text-emerald-500">{session.stats.learned_percentage}%</p>
               </div>
-              <div className="bg-muted/50 rounded-xl p-4">
-                <p className="text-xs text-muted-foreground mb-1">Maduros</p>
+              <div className="bg-muted/50 rounded-xl p-4 relative">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs text-muted-foreground">Maduros</p>
+                  <Info
+                    className="w-3 h-3 text-muted-foreground cursor-pointer hover:text-indigo-500 transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setInfoText("Cards com intervalo de revisão longo, indicando forte memorização.");
+                    }}
+                  />
+                </div>
                 <p className="text-2xl font-bold text-purple-500">{session.stats.mature}</p>
               </div>
-              <div className="bg-muted/50 rounded-xl p-4">
-                <p className="text-xs text-muted-foreground mb-1">Facilidade Média</p>
+              <div className="bg-muted/50 rounded-xl p-4 relative">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs text-muted-foreground">Facilidade Média</p>
+                  <Info
+                    className="w-3 h-3 text-muted-foreground cursor-pointer hover:text-indigo-500 transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setInfoText("Média de facilidade dos cards. Valores maiores indicam que o conteúdo é mais fácil de lembrar.");
+                    }}
+                  />
+                </div>
                 <p className="text-2xl font-bold text-indigo-500">{session.stats.average_ease_factor}</p>
               </div>
             </div>
