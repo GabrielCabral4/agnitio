@@ -30,14 +30,26 @@ export default function AnalyticsPage() {
     quizzes_this_week: number;
     weekly_activity: { date: string; day: string; count: number }[];
     recent_sessions: { id: string; title: string; source_type: string; created_at: string; quiz_count: number }[];
+    due_sessions_count?: number;
   } | null>(null);
 
   useEffect(() => {
-    api.getAnalytics()
-      .then(setData)
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
+    if (isAuthenticated) {
+      api.getAnalytics()
+        .then((res) => {
+          setData({
+            ...res,
+            recent_sessions: []
+          });
+        })
+        .catch(console.error)
+        .finally(() => setLoading(false));
+    } else if (!isLoading) {
+      if (loading) {
+        setTimeout(() => setLoading(false), 0);
+      }
+    }
+  }, [isAuthenticated, isLoading, loading]);
 
   if (isLoading || !isAuthenticated) {
     return (
