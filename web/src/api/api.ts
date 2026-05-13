@@ -155,6 +155,7 @@ export const api = {
     quizzes_today: number;
     quizzes_this_week: number;
     weekly_activity: { date: string; day: string; count: number }[];
+    due_sessions_count: number;
   }> {
     const res = await fetch(`${API_URL}/sessions/analytics`, {
       headers: getAuthHeader() as AuthHeaders,

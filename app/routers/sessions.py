@@ -146,6 +146,8 @@ def get_analytics(db: Session = Depends(get_db), current_user=Depends(get_curren
             "count": count
         })
 
+    due_sessions_count = db.query(StudySession).join(StudyMaterial).join(FlashCardReview).filter(StudySession.user_id == current_user.id, FlashCardReview.next_review_at <= now).distinct().count()
+
     # Recent sessions
     recent_sessions = []
     for s in db.query(StudySession).filter(StudySession.user_id == current_user.id).order_by(StudySession.created_at.desc()).limit(5).all():
@@ -166,11 +168,12 @@ def get_analytics(db: Session = Depends(get_db), current_user=Depends(get_curren
         "total_quizzes": total_quizzes,
         "total_flashcards": total_flashcards,
         "average_score": round(average_score, 1),
-        "best_score": round(best_score, 1),
+        "best_score": best_score,
         "quizzes_today": quizzes_today,
         "quizzes_this_week": quizzes_this_week,
         "weekly_activity": weekly_activity,
-        "recent_sessions": recent_sessions
+        "recent_sessions": recent_sessions,
+        "due_sessions_count": due_sessions_count
     }
 
 @router.post("/{session_id}/review", response_model=ReviewSessionResponse)

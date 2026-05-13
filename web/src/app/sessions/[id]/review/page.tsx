@@ -169,6 +169,31 @@ export default function ReviewPage() {
             </div>
           )}
 
+          {infoText && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in"
+              onClick={() => setInfoText(null)}
+            >
+              <div
+                className="bg-white dark:bg-gray-900 w-full max-w-sm rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 animate-scale-in p-6 text-center"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-indigo-500/10 flex items-center justify-center">
+                  <Info className="w-6 h-6 text-indigo-500" />
+                </div>
+                <p className="text-muted-foreground mb-6">
+                  {infoText}
+                </p>
+                <button
+                  onClick={() => setInfoText(null)}
+                  className="cursor-pointer w-full py-2 text-sm font-medium bg-indigo-500 text-white rounded-xl hover:bg-indigo-600 transition-all"
+                >
+                  Entendido
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-3 justify-center">
             <button
               onClick={() => router.push(`/sessions/${id}`)}

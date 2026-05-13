@@ -3,21 +3,36 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api, Session } from "@/api/api";
-import { Plus, FileText, Sparkles, Calendar, ChevronRight, Inbox, TrendingUp, Trash2, AlertCircle } from "lucide-react";
+import {
+  Plus,
+  FileText,
+  Sparkles,
+  Calendar,
+  ChevronRight,
+  Inbox,
+  TrendingUp,
+  Trash2,
+  AlertCircle,
+  Clock
+} from "lucide-react";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { useRouter } from "next/navigation";
 
 export default function Home() {
   const { isLoading, isAuthenticated } = useRequireAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
+  const [dueCount, setDueCount] = useState<number | null>(null);
 
   useEffect(() => {
     if (isAuthenticated) {
       api.listSessions()
         .then(setSessions)
         .finally(() => setLoading(false));
+
+      api.getAnalytics()
+        .then(data => setDueCount(data.due_sessions_count))
+        .catch(console.error);
     }
   }, [isAuthenticated]);
 
@@ -73,6 +88,12 @@ export default function Home() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {dueCount !== null && dueCount > 0 && (
+            <div className="flex items-center gap-2 bg-amber-500/10 text-amber-600 dark:text-amber-400 px-3 py-2 rounded-xl border border-amber-500/20 animate-pulse">
+              <Clock className="w-4 h-4" />
+              <span className="text-xs font-semibold">{dueCount} revisões pendentes</span>
+            </div>
+          )}
           <Link
             href="/analytics"
             className="flex items-center gap-2 border-2 border-border text-muted-foreground text-sm font-medium px-5 py-2.5 rounded-xl hover:border-indigo-500/50 hover:text-indigo-500 transition-all"

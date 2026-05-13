@@ -24,6 +24,7 @@ export default function SessionDetail() {
     average_ease_factor: number;
     learned_percentage: number;
   } | null>(null);
+  const [infoText, setInfoText] = useState<string | null>(null);
 
   useEffect(() => {
     api.getSession(id)
@@ -240,81 +241,81 @@ export default function SessionDetail() {
 
             {srsStats ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                <div className="p-4 rounded-xl bg-muted/50 border border-slate-200/50">
-                  <div className="flex items-center gap-1 mb-1">
+                <div className="p-4 rounded-xl bg-muted/50 border border-slate-200/50 relative group">
+                  <div className="flex items-center justify-between mb-1">
                     <p className="text-xs text-muted-foreground uppercase tracking-wider">Total de Cards</p>
-                    <div className="group relative">
-                      <Info className="w-3 h-3 text-muted-foreground cursor-help hover:text-indigo-500 transition-colors" />
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden sm:group-hover:block w-48 p-2 bg-slate-900 text-white text-[10px] rounded-lg shadow-xl z-50 pointer-events-none">
-                        Quantidade total de flashcards gerados para esta sessão.
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
-                      </div>
-                    </div>
+                    <Info
+                      className="w-3 h-3 text-muted-foreground cursor-pointer hover:text-indigo-500 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setInfoText("Quantidade total de flashcards gerados para esta sessão.");
+                      }}
+                    />
                   </div>
                   <p className="text-2xl font-bold">{srsStats.total}</p>
                 </div>
-                <div className="p-4 rounded-xl bg-muted/50 border border-slate-200/50">
-                  <div className="flex items-center gap-1 mb-1">
+                <div className="p-4 rounded-xl bg-muted/50 border border-slate-200/50 relative group">
+                  <div className="flex items-center justify-between mb-1">
                     <p className="text-xs text-muted-foreground uppercase tracking-wider">Pendentes</p>
-                    <div className="group relative">
-                      <Info className="w-3 h-3 text-muted-foreground cursor-help hover:text-indigo-500 transition-colors" />
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden sm:group-hover:block w-48 p-2 bg-slate-900 text-white text-[10px] rounded-lg shadow-xl z-50 pointer-events-none">
-                        Cards que precisam de revisão hoje com base no algoritmo de repetição espaçada.
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
-                      </div>
-                    </div>
+                    <Info
+                      className="w-3 h-3 text-muted-foreground cursor-pointer hover:text-indigo-500 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setInfoText("Cards que precisam de revisão hoje com base no algoritmo de repetição espaçada.");
+                      }}
+                    />
                   </div>
                   <p className="text-2xl font-bold text-amber-600">{srsStats.due}</p>
                 </div>
-                <div className="p-4 rounded-xl bg-muted/50 border border-slate-200/50">
-                  <div className="flex items-center gap-1 mb-1">
+                <div className="p-4 rounded-xl bg-muted/50 border border-slate-200/50 relative group">
+                  <div className="flex items-center justify-between mb-1">
                     <p className="text-xs text-muted-foreground uppercase tracking-wider">Novos</p>
-                    <div className="group relative">
-                      <Info className="w-3 h-3 text-muted-foreground cursor-help hover:text-indigo-500 transition-colors" />
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden sm:group-hover:block w-48 p-2 bg-slate-900 text-white text-[10px] rounded-lg shadow-xl z-50 pointer-events-none">
-                        Cards que ainda não foram revisados nenhuma vez.
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
-                      </div>
-                    </div>
+                    <Info
+                      className="w-3 h-3 text-muted-foreground cursor-pointer hover:text-indigo-500 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setInfoText("Cards que ainda não foram revisados nenhuma vez.");
+                      }}
+                    />
                   </div>
                   <p className="text-2xl font-bold text-blue-600">{srsStats.new}</p>
                 </div>
-                <div className="p-4 rounded-xl bg-muted/50 border border-slate-200/50">
-                  <div className="flex items-center gap-1 mb-1">
+                <div className="p-4 rounded-xl bg-muted/50 border border-slate-200/50 relative group">
+                  <div className="flex items-center justify-between mb-1">
                     <p className="text-xs text-muted-foreground uppercase tracking-wider">Consolidados</p>
-                    <div className="group relative">
-                      <Info className="w-3 h-3 text-muted-foreground cursor-help hover:text-indigo-500 transition-colors" />
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden sm:group-hover:block w-48 p-2 bg-slate-900 text-white text-[10px] rounded-lg shadow-xl z-50 pointer-events-none">
-                        Cards com intervalo de revisão superior a 21 dias, indicando forte memorização.
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
-                      </div>
-                    </div>
+                    <Info
+                      className="w-3 h-3 text-muted-foreground cursor-pointer hover:text-indigo-500 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setInfoText("Cards com intervalo de revisão superior a 21 dias, indicando forte memorização.");
+                      }}
+                    />
                   </div>
                   <p className="text-2xl font-bold text-emerald-600">{srsStats.mature}</p>
                 </div>
-                <div className="p-4 rounded-xl bg-muted/50 border border-slate-200/50">
-                  <div className="flex items-center gap-1 mb-1">
+                <div className="p-4 rounded-xl bg-muted/50 border border-slate-200/50 relative group">
+                  <div className="flex items-center justify-between mb-1">
                     <p className="text-xs text-muted-foreground uppercase tracking-wider">Facilidade Média</p>
-                    <div className="group relative">
-                      <Info className="w-3 h-3 text-muted-foreground cursor-help hover:text-indigo-500 transition-colors" />
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden sm:group-hover:block w-48 p-2 bg-slate-900 text-white text-[10px] rounded-lg shadow-xl z-50 pointer-events-none">
-                        Média de facilidade dos cards. Valores maiores indicam que o conteúdo é mais fácil de lembrar.
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
-                      </div>
-                    </div>
+                    <Info
+                      className="w-3 h-3 text-muted-foreground cursor-pointer hover:text-indigo-500 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setInfoText("Média de facilidade dos cards. Valores maiores indicam que o conteúdo é mais fácil de lembrar.");
+                      }}
+                    />
                   </div>
                   <p className="text-2xl font-bold">{srsStats.average_ease_factor}</p>
                 </div>
-                <div className="p-4 rounded-xl bg-muted/50 border border-slate-200/50">
-                  <div className="flex items-center gap-1 mb-1">
+                <div className="p-4 rounded-xl bg-muted/50 border border-slate-200/50 relative group">
+                  <div className="flex items-center justify-between mb-1">
                     <p className="text-xs text-muted-foreground uppercase tracking-wider">Progresso de Revisão</p>
-                    <div className="group relative">
-                      <Info className="w-3 h-3 text-muted-foreground cursor-help hover:text-indigo-500 transition-colors" />
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden sm:group-hover:block w-48 p-2 bg-slate-900 text-white text-[10px] rounded-lg shadow-xl z-50 pointer-events-none">
-                        Percentual de cards que já foram revisados ao menos uma vez.
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
-                      </div>
-                    </div>
+                    <Info
+                      className="w-3 h-3 text-muted-foreground cursor-pointer hover:text-indigo-500 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setInfoText("Percentual de cards que já foram revisados ao menos uma vez.");
+                      }}
+                    />
                   </div>
                   <div className="flex items-center gap-2">
                     <p className="text-2xl font-bold">{srsStats.learned_percentage}%</p>
