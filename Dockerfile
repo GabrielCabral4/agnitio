@@ -1,21 +1,18 @@
 FROM python:3.11-slim
 
-# Install system dependencies required by WeasyPrint
 RUN apt-get update && apt-get install -y \
     libgobject-2.0-0 \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
     libcairo2 \
-    libgdk-pixbuf2.0-0 \
+    libgdk-pixbuf-xlib-2.0-0 \
     libffi-dev \
     shared-mime-info \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uv/bin/uv
 
-# Add uv to PATH
 ENV PATH="/uv/bin:$PATH"
 
 WORKDIR /app
