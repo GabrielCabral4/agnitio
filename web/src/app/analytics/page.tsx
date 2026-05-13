@@ -192,7 +192,7 @@ export default function AnalyticsPage() {
         </div>
 
         <div className="flex items-end justify-between h-40 gap-2">
-          {data.weekly_activity.map((day, i) => {
+          {data.weekly_activity.map((day) => {
             const height = (day.count / maxWeeklyCount) * 100;
             return (
               <div key={day.date} className="flex-1 flex flex-col items-center gap-2">

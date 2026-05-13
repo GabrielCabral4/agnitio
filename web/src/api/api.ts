@@ -16,7 +16,7 @@ async function handleResponse(res: Response) {
     if (errorData && typeof errorData.detail === "string") {
       detail = errorData.detail;
     }
-  } catch (e) {
+  } catch {
     // Response was not JSON
   }
 

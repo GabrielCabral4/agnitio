@@ -43,7 +43,7 @@ export default function Home() {
     try {
       await api.deleteSession(id);
       setSessions(prev => prev.filter(s => s.id !== id));
-    } catch (e) {
+    } catch {
       alert("Erro ao excluir sessão");
     }
   };

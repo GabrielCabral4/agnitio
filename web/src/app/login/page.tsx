@@ -8,7 +8,6 @@ import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
 export default function LoginPage() {
-  const router = useRouter();
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,7 +34,7 @@ export default function LoginPage() {
       const { access_token } = await api.loginDemo();
       login(access_token);
       toast.success("Bem-vindo ao modo demo!");
-    } catch (err) {
+    } catch {
       toast.error("Erro ao acessar conta demo");
     } finally {
       setLoading(false);
