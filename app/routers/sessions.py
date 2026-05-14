@@ -324,12 +324,12 @@ def generate_material(session_id: str, flashcard_count: Optional[int] = None, db
     return db_session
 
 @router.post("/{session_id}/quiz", response_model=QuizAttemptResponse)
-def create_quiz(session_id: str, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+def create_quiz(session_id: str, quiz_count: Optional[int] = None, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     db_session = db.query(StudySession).filter(StudySession.id == session_id, StudySession.user_id == current_user.id).first()
     if not db_session:
         raise HTTPException(status_code=404, detail="Sessão não encontrada")
 
-    questions = generate_quiz(db_session.raw_content)
+    questions = generate_quiz(db_session.raw_content, quiz_count=quiz_count)
 
     attempt = QuizAttempt(
         session_id=session_id,

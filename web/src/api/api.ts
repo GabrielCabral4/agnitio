@@ -109,8 +109,12 @@ export const api = {
     return handleResponse(res);
   },
 
-  async createQuiz(sessionId: string): Promise<QuizAttempt> {
-    const res = await fetch(`${API_URL}/sessions/${sessionId}/quiz`, {
+  async createQuiz(sessionId: string, quizCount?: number): Promise<QuizAttempt> {
+    const url = quizCount
+      ? `${API_URL}/sessions/${sessionId}/quiz?quiz_count=${quizCount}`
+      : `${API_URL}/sessions/${sessionId}/quiz`;
+
+    const res = await fetch(url, {
       method: "POST",
       headers: getAuthHeader() as AuthHeaders,
     });

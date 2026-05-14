@@ -113,12 +113,13 @@ CONTEÚDO PARA ANALISAR:
     return result
 
 
-def generate_quiz(content: str) -> list:
+def generate_quiz(content: str, quiz_count: Optional[int] = None) -> list:
+    count_instruction = f"Crie EXATAMENTE {quiz_count} questões" if quiz_count else "Crie 5 questões"
     prompt = f"""
 Você é um especialista em avaliação educacional criando questões de múltipla escolha.
 
 TAREFA:
-Crie 5 questões de múltipla escolha baseadas no conteúdo fornecido.
+{count_instruction} de múltipla escolha baseadas no conteúdo fornecido.
 
 REGRAS PARA AS QUESTÕES:
 - Escreva tudo em português do Brasil
@@ -130,9 +131,7 @@ REGRAS PARA AS QUESTÕES:
 - Varie a posição da resposta correta entre as questões
 
 DIFICULDADE:
-- 2 questões fáceis (conceitos básicos)
-- 2 questões médias (aplicação direta)
-- 1 questão difícil (análise ou síntese)
+- Distribua a dificuldade proporcionalmente entre questões fáceis, médias e difíceis.
 
 FORMATO DE SAÍDA (JSON válido, sem markdown, sem texto adicional):
 [
@@ -147,7 +146,13 @@ CONTEÚDO PARA ANALISAR:
 {content}
 """
     response_text = _generate_with_retry(prompt)
-    return _parse_json(response_text)
+    result = _parse_json(response_text)
+
+    # Garante que a quantidade de questões seja exatamente a solicitada, se especificada
+    if quiz_count and isinstance(result, list):
+        result = result[:quiz_count]
+
+    return result
 
 
 def analyze_answers(questions: list, answers: list) -> dict:

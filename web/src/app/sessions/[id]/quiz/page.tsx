@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { api, QuizQuestion } from "@/api/api";
 import { ArrowLeft, Brain, CheckCircle, XCircle, Trophy, RotateCcw, ArrowRight, TrendingUp } from "lucide-react";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
@@ -19,6 +19,7 @@ interface QuizAttempt {
 export default function QuizPage() {
   const { isLoading, isAuthenticated } = useRequireAuth();
   const { id } = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const [attempt, setAttempt] = useState<QuizAttempt | null>(null);
   const [answers, setAnswers] = useState<Record<number, number>>({});
@@ -28,8 +29,10 @@ export default function QuizPage() {
   const [history, setHistory] = useState<QuizAttempt[]>([]);
 
   useEffect(() => {
+    const quizCount = parseInt(searchParams.get("count") || "5");
+
     Promise.all([
-      api.createQuiz(id),
+      api.createQuiz(id, quizCount),
       api.getQuizAttempts(id).catch(() => [])
     ])
       .then(([newAttempt, historyData]) => {
@@ -43,7 +46,7 @@ export default function QuizPage() {
           : "Erro ao gerar quiz. Tente novamente.");
       })
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, searchParams]);
 
   function selectAnswer(questionIndex: number, optionIndex: number) {
     if (attempt?.answers) return;
@@ -433,7 +436,7 @@ export default function QuizPage() {
             className="flex-1 flex items-center justify-center gap-2 cursor-pointer bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-4 rounded-xl text-sm font-medium hover:shadow-lg hover:shadow-indigo-500/25 transition-all hover:-translate-y-0.5"
           >
             Voltar para sessão
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className="w-4 h-4 cursor-pointer" />
           </button>
         </div>
       )}
