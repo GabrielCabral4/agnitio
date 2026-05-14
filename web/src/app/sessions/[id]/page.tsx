@@ -116,7 +116,7 @@ export default function SessionDetail() {
             <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 w-full sm:w-auto">
               {session.material && (
                 <button
-                  onClick={() => router.push(`/sessions/${id}/quiz`)}
+                  onClick={() => router.push(`/sessions/${id}/quiz/setup`)}
                   className="flex-1 sm:flex-none items-center justify-center gap-2 cursor-pointer bg-linear-to-r from-indigo-500 to-purple-500 text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 hover:-translate-y-0.5 active:scale-95 active:opacity-90 transition-all"
                 >
                   <Brain className="w-4 h-4" />
@@ -268,16 +268,16 @@ export default function SessionDetail() {
                 </div>
                 <div className="p-4 rounded-xl bg-muted/50 border border-slate-200/50 relative group">
                   <div className="flex items-center justify-between mb-1">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Novos</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Erros</p>
                     <Info
                       className="w-3 h-3 text-muted-foreground cursor-pointer hover:text-indigo-500 transition-colors"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setInfoText("Cards que ainda não foram revisados nenhuma vez.");
+                        setInfoText("Cards que ainda não foram aprendidos de acordo com o algoritmo.");
                       }}
                     />
                   </div>
-                  <p className="text-2xl font-bold text-blue-600">{srsStats.new}</p>
+                  <p className="text-2xl font-bold text-red-500">{srsStats.new}</p>
                 </div>
                 <div className="p-4 rounded-xl bg-muted/50 border border-slate-200/50 relative group">
                   <div className="flex items-center justify-between mb-1">
@@ -303,7 +303,7 @@ export default function SessionDetail() {
                       }}
                     />
                   </div>
-                  <p className="text-2xl font-bold">{srsStats.average_ease_factor}</p>
+                  <p className="text-2xl font-bold text-blue-500">{srsStats.average_ease_factor}</p>
                 </div>
                 <div className="p-4 rounded-xl bg-muted/50 border border-slate-200/50 relative group">
                   <div className="flex items-center justify-between mb-1">
@@ -382,7 +382,7 @@ export default function SessionDetail() {
                       </div>
                     </div>
                     {/* Back */}
-                    <div className="flip-card-back card p-5 min-h-[180px] flex flex-col justify-center bg-linear-to-br from-indigo-500/5 to-purple-500/5">
+                    <div className="flip-card-back card p-5 min-h-[180px] flex flex-col justify-center bg-linear-to-br from-indigo-500/5 to-purple-500/5 overflow-y-auto">
                       <div className="flex items-center gap-2 mb-3">
                         <span className="text-xs font-medium text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-full">
                           Verso
