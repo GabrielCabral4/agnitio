@@ -23,16 +23,34 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
   const [dueCount, setDueCount] = useState<number | null>(null);
+  const [dueSessions, setDueSessions] = useState<{ id: string; title: string; due: number }[]>([]);
 
   useEffect(() => {
     if (isAuthenticated) {
       api.listSessions()
-        .then(setSessions)
-        .finally(() => setLoading(false));
+        .then(async (sessionsData) => {
+          setSessions(sessionsData);
 
-      api.getAnalytics()
-        .then(data => setDueCount(data.due_sessions_count))
-        .catch(console.error);
+          // Fetch review stats for sessions with material
+          const sessionsWithMaterial = sessionsData.filter(s => s.material);
+          const dueSessionsData = await Promise.all(
+            sessionsWithMaterial.map(async (session) => {
+              try {
+                const stats = await api.getReviewStats(session.id);
+                if (stats.due > 0) {
+                  return { id: session.id, title: session.title, due: stats.due };
+                }
+                return null;
+              } catch {
+                return null;
+              }
+            })
+          );
+
+          setDueSessions(dueSessionsData.filter((s): s is { id: string; title: string; due: number } => s !== null));
+          setDueCount(dueSessionsData.filter(s => s !== null).length);
+        })
+        .finally(() => setLoading(false));
     }
   }, [isAuthenticated]);
 
@@ -91,7 +109,15 @@ export default function Home() {
           {dueCount !== null && dueCount > 0 && (
             <div className="flex items-center gap-2 bg-amber-500/10 text-amber-600 dark:text-amber-400 px-3 py-2 rounded-xl border border-amber-500/20 animate-pulse">
               <Clock className="w-4 h-4" />
-              <span className="text-xs font-semibold">{dueCount} revisões pendentes</span>
+              <span className="text-xs font-semibold">
+                {dueCount === 1 ? "Revisão pendente: " : "Revisões pendentes: "}
+                {dueSessions.map((s, i) => (
+                  <span key={s.id}>
+                    {i > 0 && i < dueSessions.length && ", "}
+                    <Link href={`/sessions/${s.id}`} className="hover:underline">{s.title}</Link>
+                  </span>
+                ))}
+              </span>
             </div>
           )}
           <Link
