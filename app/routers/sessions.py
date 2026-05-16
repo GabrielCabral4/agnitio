@@ -1,28 +1,52 @@
 from typing import Optional
-
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
-from fastapi.responses import Response, FileResponse
+import asyncio
+import io
+from datetime import datetime, timedelta, timezone
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status, BackgroundTasks
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from app.database import get_db
+from app.database import get_db, SessionLocal
 from app.models.session import StudySession, StudyMaterial, QuizAttempt, FlashCardReview
 from app.schemas.session import (
     SessionCreate, SessionUpdate, SessionResponse,
     QuizAttemptResponse, QuizSubmit,
     FlashCardReviewResponse, ReviewSessionResponse, ReviewSubmit
 )
-from app.services.ai import generate_study_material, generate_quiz, analyze_answers
+from app.services.ai import generate_summary, generate_flashcards, generate_quiz, analyze_answers
 from app.routers.auth import get_current_user
 from app.services import srs
 from app.services.pdf_export import generate_session_pdf
-from datetime import datetime, timedelta, timezone
-import io
 
 try:
     from PyPDF2 import PdfReader
     PDF_SUPPORT = True
 except ImportError:
     PDF_SUPPORT = False
+
+async def process_study_material(session_id: str, content: str, flashcard_count: Optional[int]):
+    db = SessionLocal()
+    try:
+        # Run AI calls in parallel using threads
+        summary_task = asyncio.to_thread(generate_summary, content)
+        flashcards_task = asyncio.to_thread(generate_flashcards, content, flashcard_count)
+
+        summary, flashcards = await asyncio.gather(summary_task, flashcards_task)
+
+        material = db.query(StudyMaterial).filter(StudyMaterial.session_id == session_id).first()
+        if material:
+            material.summary = summary
+            material.flashcards = flashcards
+            material.status = "completed"
+            db.commit()
+    except Exception as e:
+        material = db.query(StudyMaterial).filter(StudyMaterial.session_id == session_id).first()
+        if material:
+            material.status = "failed"
+            db.commit()
+        print(f"Error generating study material for session {session_id}: {e}")
+    finally:
+        db.close()
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
@@ -311,25 +335,40 @@ def get_review_stats(session_id: str, db: Session = Depends(get_db), current_use
     stats = srs.get_study_stats(reviews)
     return stats
 
-@router.post("/{session_id}/generate", response_model=SessionResponse)
-def generate_material(session_id: str, flashcard_count: Optional[int] = None, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+@router.post("/{session_id}/generate", status_code=status.HTTP_202_ACCEPTED)
+async def generate_material(
+    session_id: str,
+    background_tasks: BackgroundTasks,
+    flashcard_count: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
     db_session = db.query(StudySession).filter(StudySession.id == session_id, StudySession.user_id == current_user.id).first()
     if not db_session:
         raise HTTPException(status_code=404, detail="Sessão não encontrada")
     if db_session.material:
         raise HTTPException(status_code=400, detail="Material já gerado para esta sessão")
 
-    result = generate_study_material(db_session.raw_content, flashcard_count=flashcard_count)
-
     material = StudyMaterial(
         session_id=session_id,
-        flashcards=result["flashcards"],
-        summary=result["summary"],
+        status="pending",
     )
     db.add(material)
     db.commit()
-    db.refresh(db_session)
-    return db_session
+
+    background_tasks.add_task(process_study_material, session_id, db_session.raw_content, flashcard_count)
+
+    return {"message": "Material generation started", "session_id": session_id}
+
+@router.get("/{session_id}/material/status")
+def get_material_status(session_id: str, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    db_session = db.query(StudySession).filter(StudySession.id == session_id, StudySession.user_id == current_user.id).first()
+    if not db_session:
+        raise HTTPException(status_code=404, detail="Sessão não encontrada")
+    if not db_session.material:
+        return {"status": "not_started"}
+
+    return {"status": db_session.material.status}
 
 @router.post("/{session_id}/quiz", response_model=QuizAttemptResponse)
 def create_quiz(session_id: str, quiz_count: Optional[int] = None, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
