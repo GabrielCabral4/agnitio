@@ -13,7 +13,7 @@ export default function SessionDetail() {
   const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
+  const [generationStatus, setGenerationStatus] = useState<'idle' | 'processing' | 'completed' | 'error'>('idle');
   const [flashcardCount, setFlashcardCount] = useState(10);
   const [flipped, setFlipped] = useState<Record<number, boolean>>({});
   const [srsStats, setSrsStats] = useState<{
@@ -46,19 +46,43 @@ export default function SessionDetail() {
     }
   }, [id, session?.material]);
 
-  async function handleGenerate() {
-    setGenerating(true);
+  async function pollMaterialStatus() {
     try {
-      const updated = await api.generateMaterial(id, flashcardCount);
-      setSession(updated);
-      toast.success("Material gerado com sucesso!");
+      const result = await api.getMaterialStatus(id);
+      if (result.status === "completed") {
+        const updatedSession = await api.getSession(id);
+        setSession(updatedSession);
+        setGenerationStatus("completed");
+        toast.success("Material gerado com sucesso!");
+      } else if (result.status === "failed") {
+        setGenerationStatus("error");
+        toast.error("Erro na geração do material pela IA. Tente novamente.");
+      } else {
+        setTimeout(pollMaterialStatus, 3000);
+      }
     } catch (err) {
+      setGenerationStatus("error");
+      toast.error("Erro ao verificar status do material.");
+    }
+  }
+
+  async function handleGenerate() {
+    setGenerationStatus("processing");
+    try {
+      const result = await api.generateMaterial(id, flashcardCount);
+      if ("status" in result && result.status === 202) {
+        pollMaterialStatus();
+      } else {
+        setSession(result as Session);
+        setGenerationStatus("completed");
+        toast.success("Material gerado com sucesso!");
+      }
+    } catch (err) {
+      setGenerationStatus("error");
       const message = err instanceof Error ? err.message : "Erro ao gerar material";
       toast.error(message.includes("IA temporariamente")
         ? message
         : "Erro ao gerar material. Tente novamente.");
-    } finally {
-      setGenerating(false);
     }
   }
 
@@ -186,49 +210,54 @@ export default function SessionDetail() {
       {/* No Material State */}
       {!session.material && (
         <div className="card p-12 text-center border-dashed animate-scale-in">
-          <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 flex items-center justify-center">
-            <Sparkles className="w-10 h-10 text-amber-500" />
-          </div>
-          <h2 className="text-xl font-semibold mb-2">Pronto(a) para gerar seu material?</h2>
-          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-            Gere flashcards e um resumo inteligente deste conteúdo usando IA
-          </p>
+          {generationStatus === "processing" ? (
+            <>
+              <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-indigo-500/10 flex items-center justify-center animate-pulse">
+                <Sparkles className="w-10 h-10 text-indigo-500 animate-spin" />
+              </div>
+              <h2 className="text-xl font-semibold mb-2">Analisando conteúdo...</h2>
+              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                A IA está criando seus flashcards e resumo personalizados. Isso geralmente leva cerca de 20 segundos.
+                Por favor, aguarde um instante.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 flex items-center justify-center">
+                <Sparkles className="w-10 h-10 text-amber-500" />
+              </div>
+              <h2 className="text-xl font-semibold mb-2">Pronto(a) para gerar seu material?</h2>
+              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                Gere flashcards e um resumo inteligente deste conteúdo usando IA
+              </p>
 
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <label htmlFor="card-count" className="text-sm font-medium text-muted-foreground">
-              Quantidade de flashcards:
-            </label>
-            <input
-              id="card-count"
-              type="number"
-              min="1"
-              max="30"
-              value={flashcardCount}
-              onChange={(e) => setFlashcardCount(parseInt(e.target.value) || 1)}
-              className="w-20 px-3 py-1.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-            />
-          </div>
+              <div className="flex items-center justify-center gap-3 mb-6">
+                <label htmlFor="card-count" className="text-sm font-medium text-muted-foreground">
+                  Quantidade de flashcards:
+                </label>
+                <input
+                  id="card-count"
+                  type="number"
+                  min="1"
+                  max="30"
+                  value={flashcardCount}
+                  onChange={(e) => setFlashcardCount(parseInt(e.target.value) || 1)}
+                  className="w-20 px-3 py-1.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                />
+              </div>
 
-          <button
-            onClick={handleGenerate}
-            disabled={generating}
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium px-8 py-3 rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none cursor-pointer"
-          >
-            {generating ? (
-              <>
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                Gerando com IA...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-5 h-5" />
-                Gerar flashcards e resumo
-              </>
-            )}
-          </button>
+              <button
+                onClick={handleGenerate}
+                disabled={false}
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium px-8 py-3 rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none cursor-pointer"
+              >
+                <>
+                  <Sparkles className="w-5 h-5" />
+                  Gerar flashcards e resumo
+                </>
+              </button>
+            </>
+          )}
         </div>
       )}
 

@@ -98,14 +98,24 @@ export const api = {
     return handleResponse(res);
   },
 
-  async generateMaterial(sessionId: string, flashcardCount: number): Promise<Session> {
+  async generateMaterial(sessionId: string, flashcardCount: number): Promise<Session | { status: 202 }> {
     const res = await fetch(`${API_URL}/sessions/${sessionId}/generate?flashcard_count=${flashcardCount}`, {
       method: "POST",
       headers: getAuthHeader() as AuthHeaders,
     });
+    if (res.status === 202) {
+      return { status: 202 };
+    }
     if (res.status === 503) {
       throw new Error("Serviço de IA temporariamente indisponível. Tente novamente em instantes.");
     }
+    return handleResponse(res);
+  },
+
+  async getMaterialStatus(sessionId: string): Promise<{ status: string }> {
+    const res = await fetch(`${API_URL}/sessions/${sessionId}/material/status`, {
+      headers: getAuthHeader() as AuthHeaders,
+    });
     return handleResponse(res);
   },
 
