@@ -7,8 +7,7 @@ from google.genai.errors import APIError
 from app.config import settings
 
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
-MODEL_PRIMARY = "gemini-2.5-flash"
-MODEL_FALLBACK = "gemini-1.5-flash"
+MODELS_PRIORITY = ["gemini-3.1-flash-lite", "gemma-4-31b", "gemini-1.5-flash"]
 MAX_RETRIES = 3
 BASE_DELAY = 1  # seconds
 
@@ -21,46 +20,33 @@ def _parse_json(text: str) -> dict | list:
     return json.loads(cleaned)
 
 
-def _generate_with_retry(prompt: str, model: str = MODEL_PRIMARY) -> str:
+def _generate_with_retry(prompt: str) -> str:
     """
-    Gera conteúdo com retry exponencial e fallback para modelo alternativo.
+    Gera conteúdo com retry exponencial e fallback para modelos alternativos.
     Lança HTTPException(status_code=503) se tudo falhar.
     """
     from fastapi import HTTPException
 
     last_error = None
 
-    # Tenta com o modelo primário
-    for attempt in range(MAX_RETRIES):
-        try:
-            response = client.models.generate_content(model=model, contents=prompt)
-            return response.text
-        except APIError as e:
-            last_error = e
-            if e.code == 503 or "unavailable" in str(e).lower():
-                if attempt < MAX_RETRIES - 1:
-                    delay = BASE_DELAY * (2 ** attempt)
-                    time.sleep(delay)
-                    continue
-                # Esgotou tentativas com modelo primário, tenta fallback
-                break
-            else:
-                # Erro não recuperável
-                raise
-
-    # Tenta com modelo fallback
-    for attempt in range(MAX_RETRIES):
-        try:
-            response = client.models.generate_content(model=MODEL_FALLBACK, contents=prompt)
-            return response.text
-        except APIError as e:
-            last_error = e
-            if e.code == 503 or "unavailable" in str(e).lower():
-                if attempt < MAX_RETRIES - 1:
-                    delay = BASE_DELAY * (2 ** attempt)
-                    time.sleep(delay)
-                    continue
-                break
+    for model in MODELS_PRIORITY:
+        for attempt in range(MAX_RETRIES):
+            try:
+                response = client.models.generate_content(model=model, contents=prompt)
+                return response.text
+            except APIError as e:
+                last_error = e
+                # 429 Too Many Requests or 503 Service Unavailable
+                if e.code == 429 or e.code == 503 or "unavailable" in str(e).lower() or "rate limit" in str(e).lower():
+                    if attempt < MAX_RETRIES - 1:
+                        delay = BASE_DELAY * (2 ** attempt)
+                        time.sleep(delay)
+                        continue
+                    # Esgotou tentativas com este modelo, tenta o próximo fallback
+                    break
+                else:
+                    # Erro não recuperável
+                    raise
 
     # Tudo falhou
     raise HTTPException(
@@ -69,15 +55,34 @@ def _generate_with_retry(prompt: str, model: str = MODEL_PRIMARY) -> str:
     )
 
 
-def generate_study_material(content: str, flashcard_count: Optional[int] = None) -> dict:
+def generate_summary(content: str) -> str:
+    prompt = f"""
+Você é um assistente de estudos especializado em criar material didático de alta qualidade.
+
+TAREFA:
+Gere um resumo estruturado em parágrafos coerentes.
+
+REGRAS PARA RESUMO:
+- Escreva em português do Brasil
+- Use parágrafos bem estruturados
+- Destaque conceitos-chave e relações entre eles
+
+FORMATO DE SAÍDA:
+Apenas o texto do resumo, sem markdown ou JSON.
+
+CONTEÚDO PARA ANALISAR:
+{content}
+"""
+    return _generate_with_retry(prompt)
+
+def generate_flashcards(content: str, flashcard_count: Optional[int] = None) -> list:
     count_instruction = f"Crie EXATAMENTE {flashcard_count} flashcards" if flashcard_count else "Crie entre 5 e 15 flashcards"
     prompt = f"""
 Você é um assistente de estudos especializado em criar material didático de alta qualidade.
 
-TAREFAS:
-1. {count_instruction} com perguntas conceituais e respostas diretas.
-   IMPORTANTE: O número de flashcards deve ser rigorosamente {flashcard_count if flashcard_count else 'entre 5 e 15'}. Não gere mais nem menos que isso.
-2. Gere um resumo estruturado em parágrafos coerentes
+TAREFA:
+{count_instruction} com perguntas conceituais e respostas diretas.
+IMPORTANTE: O número de flashcards deve ser rigorosamente {flashcard_count if flashcard_count else 'entre 5 e 15'}. Não gere mais nem menos que isso.
 
 REGRAS PARA FLASHCARDS:
 - Frente: perguntas claras e objetivas que testam compreensão conceitual
@@ -87,17 +92,11 @@ REGRAS PARA FLASHCARDS:
 - Priorize conceitos fundamentais e definições-chave
 - Respostas devem caber em um cartão físico — seja sucinto, vá direto ao ponto
 
-REGRAS PARA RESUMO:
-- Escreva em português do Brasil
-- Use parágrafos bem estruturados
-- Destaque conceitos-chave e relações entre eles
-
 FORMATO DE SAÍDA (JSON válido, sem markdown, sem texto adicional):
 {{
   "flashcards": [
     {{"front": "O que é X?", "back": "X é [definição direta]. [contexto opcional breve]."}}
-  ],
-  "summary": "texto do resumo aqui"
+  ]
 }}
 
 CONTEÚDO PARA ANALISAR:
@@ -106,11 +105,20 @@ CONTEÚDO PARA ANALISAR:
     response_text = _generate_with_retry(prompt)
     result = _parse_json(response_text)
 
-    # Garante que a quantidade de flashcards seja exatamente a solicitada, se especificada
-    if flashcard_count and "flashcards" in result and isinstance(result["flashcards"], list):
-        result["flashcards"] = result["flashcards"][:flashcard_count]
+    flashcards = result.get("flashcards", [])
+    if not isinstance(flashcards, list):
+        flashcards = []
 
-    return result
+    if flashcard_count:
+        flashcards = flashcards[:flashcard_count]
+
+    return flashcards
+
+def generate_study_material(content: str, flashcard_count: Optional[int] = None) -> dict:
+    # Legacy support for synchronous call
+    summary = generate_summary(content)
+    flashcards = generate_flashcards(content, flashcard_count)
+    return {"summary": summary, "flashcards": flashcards}
 
 
 def generate_quiz(content: str, quiz_count: Optional[int] = None) -> list:
