@@ -59,16 +59,8 @@ def test_delete_session(client):
     response = client.get(f"/sessions/{session_id}", headers=headers)
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
-@patch("app.routers.sessions.generate_study_material")
+@patch("app.routers.sessions.process_study_material")
 def test_generate_material_success(mock_ai, client):
-    mock_ai.return_value = {
-        "summary": "Mock summary",
-        "flashcards": [
-            {"front": "Q1", "back": "A1"},
-            {"front": "Q2", "back": "A2"}
-        ]
-    }
-
     token = get_token(client)
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -80,6 +72,6 @@ def test_generate_material_success(mock_ai, client):
     session_id = resp.json()["id"]
 
     response = client.post(f"/sessions/{session_id}/generate", headers=headers)
-    assert response.status_code == status.HTTP_200_OK
+    assert response.status_code == status.HTTP_202_ACCEPTED
 
     mock_ai.assert_called_once()
