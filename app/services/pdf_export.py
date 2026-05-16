@@ -1,15 +1,37 @@
-from weasyprint import HTML
-from io import BytesIO
-from app.models.session import StudySession, StudyMaterial, QuizAttempt
+from app.models.session import StudySession
 
 def generate_session_pdf(session: StudySession):
+    from weasyprint import HTML
+
     material = session.material
     if not material:
         raise ValueError("Session has no generated material to export.")
 
     last_attempt = None
     if session.quiz_attempts:
-        last_attempt = sorted(session.quiz_attempts, key=lambda x: x.created_at, reverse=True)[0]
+        last_attempt = sorted(
+            session.quiz_attempts,
+            key=lambda x: x.created_at,
+            reverse=True
+        )[0]
+
+    score_text = "Guia de Estudos"
+    questions_html = "<p>Faça o quiz para ver as questões aqui.</p>"
+
+    if last_attempt is not None:
+        q_list = last_attempt.questions
+        s_val = last_attempt.score
+        if q_list and s_val is not None:
+            percentage = (s_val / len(q_list)) * 100
+            score_text = f"Último Quiz: {int(percentage)}%"
+
+        if q_list:
+            questions_html = "".join([f'''
+            <div class="quiz-item">
+                <div class="quiz-q">Pergunta: {q["question"]}</div>
+                <div class="quiz-a">Resposta Correta: {q["options"][q["correct_index"]]}</div>
+            </div>
+            ''' for q in q_list])
 
     html_content = f"""
     <!DOCTYPE html>
@@ -126,7 +148,7 @@ def generate_session_pdf(session: StudySession):
                 <h1 class="title">{session.title}</h1>
             </div>
             <div class="snapshot">
-                {f"Último Quiz: {last_attempt.score}%" if last_attempt else "Guia de Estudos"}
+                {score_text}
             </div>
         </div>
 
@@ -140,11 +162,11 @@ def generate_session_pdf(session: StudySession):
             <div class="card-grid">
                 {"".join([f'''
                 <div class="card">
-                    <span class="card-label text-rose-500">Frente</span>
-                    <div class="card-content">{card['front']}</div>
+                    <span class="card-label">Frente</span>
+                    <div class="card-content">{card["front"]}</div>
                     <div style="margin-top: 10px;">
                         <span class="card-label">Verso</span>
-                        <div class="card-content">{card['back']}</div>
+                        <div class="card-content">{card["back"]}</div>
                     </div>
                 </div>
                 ''' for card in material.flashcards])}
@@ -153,12 +175,7 @@ def generate_session_pdf(session: StudySession):
 
         <section>
             <h2>Banco de Questões</h2>
-            {"".join([f'''
-            <div class="quiz-item">
-                <div class="quiz-q">Pergunta: {q['question']}</div>
-                <div class="quiz-a">Resposta Correta: {q['options'][q['correct_index']]}</div>
-            </div>
-            ''' for q in last_attempt.questions]) if last_attempt else "<p>Faça o quiz para ver as questões aqui.</p>"}
+            {questions_html}
         </section>
 
         <div class="footer">
@@ -168,5 +185,4 @@ def generate_session_pdf(session: StudySession):
     </html>
     """
 
-    pdf_bytes = HTML(string=html_content).write_pdf()
-    return pdf_bytes
+    return HTML(string=html_content).write_pdf()
