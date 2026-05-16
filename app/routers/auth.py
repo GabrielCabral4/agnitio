@@ -7,6 +7,8 @@ from app.services.auth import get_password_hash, verify_password, create_access_
 from fastapi import Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Optional
+from datetime import datetime, timezone, timedelta
+import uuid
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 security = HTTPBearer()
@@ -72,16 +74,21 @@ def login(user_in: UserCreate, db: Session = Depends(get_db)):
 
 @router.get("/demo", response_model=Token)
 def login_demo(db: Session = Depends(get_db)):
-    # Find the first user or a specific demo user
-    user = db.query(User).first()
-    if not user:
-        # If no users exist yet, this is a fallback
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Demo account not configured. Please create a user first."
-        )
+    cutoff = datetime.now(timezone.utc) - timedelta(days=1)
+    db.query(User).filter(User.is_demo == True, User.created_at < cutoff).delete()
+    db.commit()
 
-    access_token = create_access_token(data={"sub": user.id})
+    demo_email = f"demo-{uuid.uuid4()}@example.com"
+    demo_user = User(
+        email=demo_email,
+        hashed_password=get_password_hash("demo_password"),
+        is_demo=True
+    )
+    db.add(demo_user)
+    db.commit()
+    db.refresh(demo_user)
+
+    access_token = create_access_token(data={"sub": demo_user.id})
     return {
         "access_token": access_token,
         "token_type": "bearer"
