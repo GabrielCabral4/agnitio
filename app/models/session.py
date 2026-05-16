@@ -29,8 +29,9 @@ class StudyMaterial(Base):
 
     id = Column(String, primary_key=True, default=generate_uuid)
     session_id = Column(String, ForeignKey("study_sessions.id"), nullable=False)
-    flashcards = Column(JSON, nullable=False)
-    summary = Column(Text, nullable=False)
+    flashcards = Column(JSON, nullable=True)
+    summary = Column(Text, nullable=True)
+    status = Column(String(20), nullable=False, default="pending")
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     session = relationship("StudySession", back_populates="material")
