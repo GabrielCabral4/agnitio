@@ -10,6 +10,10 @@ class SessionCreate(BaseModel):
     flashcard_count: Optional[int] = None
 
 
+class SessionUpdate(BaseModel):
+    title: str
+
+
 class AnalyticsData(BaseModel):
     total_sessions: int
     total_quizzes: int

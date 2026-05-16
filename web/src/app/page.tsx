@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { api, Session } from "@/api/api";
 import {
   Plus,
@@ -13,19 +14,30 @@ import {
   TrendingUp,
   Trash2,
   AlertCircle,
-  Clock
+  Clock,
+  Pencil,
+  X,
+  Check
 } from "lucide-react";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 export default function Home() {
   const { isLoading, isAuthenticated } = useRequireAuth();
+  const router = useRouter();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
   const [dueCount, setDueCount] = useState<number | null>(null);
   const [dueSessions, setDueSessions] = useState<{ id: string; title: string; due: number }[]>([]);
+  const [editingSession, setEditingSession] = useState<{ id: string; title: string } | null>(null);
+  const [editTitle, setEditTitle] = useState("");
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {""
     if (isAuthenticated) {
       api.listSessions()
         .then(async (sessionsData) => {
@@ -66,7 +78,40 @@ export default function Home() {
     }
   };
 
-  if (isLoading || (!isAuthenticated && !isLoading)) {
+  const startEdit = (id: string, title: string) => {
+    setEditingSession({ id, title });
+    setEditTitle(title);
+  };
+
+  const cancelEdit = () => {
+    setEditingSession(null);
+    setEditTitle("");
+  };
+
+  const saveEdit = async () => {
+    if (!editingSession || !editTitle.trim()) return;
+    try {
+      await api.updateSession(editingSession.id, editTitle);
+      setSessions(prev =>
+        prev.map(s =>
+          s.id === editingSession.id ? { ...s, title: editTitle } : s
+        )
+      );
+      cancelEdit();
+    } catch {
+      alert("Erro ao atualizar nome da sessão");
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      saveEdit();
+    } else if (e.key === "Escape") {
+      cancelEdit();
+    }
+  };
+
+  if (!mounted || isLoading || (!isAuthenticated && !isLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
@@ -175,11 +220,14 @@ export default function Home() {
               className="animate-fade-in"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
-              <Link
-                href={`/sessions/${session.id}`}
-                className="card p-5 block group hover:border-primary/30 transition-all"
-              >
-                <div className="flex items-center justify-between">
+            <div
+              onClick={() => {
+                if (editingSession) return;
+                router.push(`/sessions/${session.id}`);
+              }}
+              className="card p-5 block group hover:border-primary/30 transition-all cursor-pointer"
+            >
+              <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4 flex-1">
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
                       session.material
@@ -193,27 +241,77 @@ export default function Home() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-base group-hover:text-primary transition-colors truncate">
-                        {session.title}
-                      </h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                          session.material
-                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                            : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                        }`}>
-                          {session.material ? "Material gerado" : "Pendente"}
-                        </span>
-                        <span className="text-xs text-muted-foreground uppercase tracking-wide">
-                          {session.source_type}
-                        </span>
-                      </div>
+                      {editingSession?.id === session.id ? (
+                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="text"
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            onClick={(e) => e.stopPropagation()}
+                            autoFocus
+                            className="flex-1 px-2 py-1 text-sm font-semibold border border-primary/30 rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          />
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              saveEdit();
+                            }}
+                            className="p-1.5 text-emerald-600 cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-md transition-all"
+                            title="Salvar"
+                          >
+                            <Check className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              cancelEdit();
+                            }}
+                            className="p-1.5 text-muted-foreground cursor-pointer hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20 rounded-md transition-all"
+                            title="Cancelar"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <h3 className="font-semibold text-base group-hover:text-primary transition-colors truncate">
+                            {session.title}
+                          </h3>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                              session.material
+                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                            }`}>
+                              {session.material ? "Material gerado" : "Pendente"}
+                            </span>
+                            <span className="text-xs text-muted-foreground uppercase tracking-wide">
+                              {session.source_type}
+                            </span>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
+                    {editingSession?.id !== session.id && (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          startEdit(session.id, session.title);
+                        }}
+                        className="p-2 text-muted-foreground cursor-pointer hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
+                        title="Renomear sessão"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                    )}
                     <button
                       onClick={(e) => {
                         e.preventDefault();
+                        e.stopPropagation();
                         setSessionToDelete(session.id);
                       }}
                       className="p-2 text-muted-foreground cursor-pointer hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
@@ -228,7 +326,7 @@ export default function Home() {
                     <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
                   </div>
                 </div>
-              </Link>
+              </div>
             </li>
           ))}
         </ul>
