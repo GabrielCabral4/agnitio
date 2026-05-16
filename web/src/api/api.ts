@@ -159,6 +159,7 @@ export const api = {
     quizzes_today: number;
     quizzes_this_week: number;
     weekly_activity: { date: string; day: string; count: number }[];
+    recent_sessions: { id: string; title: string; source_type: string; created_at: string; quiz_count: number }[];
     due_sessions_count: number;
   }> {
     const res = await fetch(`${API_URL}/sessions/analytics`, {
@@ -242,6 +243,15 @@ export const api = {
       headers: getAuthHeader() as AuthHeaders,
     });
     if (!res.ok) throw new Error("Erro ao excluir sessão");
+  },
+
+  async updateSession(sessionId: string, title: string): Promise<Session> {
+    const res = await fetch(`${API_URL}/sessions/${sessionId}`, {
+      method: "PATCH",
+      headers: { ...getAuthHeader(), "Content-Type": "application/json" } as AuthHeaders,
+      body: JSON.stringify({ title }),
+    });
+    return handleResponse(res);
   },
 
   async login(data: { email: string; password: string }): Promise<{ access_token: string; token_type: string }> {
