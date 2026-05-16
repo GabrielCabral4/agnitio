@@ -21,7 +21,7 @@ class StudySession(Base):
 
     material = relationship("StudyMaterial", back_populates="session", uselist=False, cascade="all, delete-orphan")
     user = relationship("User", back_populates="sessions")
-    quiz_attempts = relationship("QuizAttempt", back_populates="session")
+    quiz_attempts = relationship("QuizAttempt", back_populates="session", cascade="all, delete-orphan")
 
 
 class StudyMaterial(Base):
