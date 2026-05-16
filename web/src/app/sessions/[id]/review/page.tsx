@@ -113,6 +113,13 @@ export default function ReviewPage() {
     return "Muito Maduro";
   }
 
+  function getEaseFactorLabel(factor: number): { label: string; color: string } {
+    if (factor < 2.0) return { label: "Desafiador", color: "text-red-500" };
+    if (factor < 2.5) return { label: "Equilibrado", color: "text-amber-500" };
+    return { label: "Fácil", color: "text-emerald-500" };
+  }
+
+
   if (isLoading || !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -193,19 +200,24 @@ export default function ReviewPage() {
                 </div>
                 <p className="text-2xl font-bold text-purple-500">{session.stats.mature}</p>
               </div>
-              <div className="bg-muted/50 rounded-xl p-4 relative">
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-xs text-muted-foreground">Facilidade Média</p>
-                  <Info
-                    className="w-3 h-3 text-muted-foreground cursor-pointer hover:text-indigo-500 transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setInfoText("Média de facilidade dos cards. Valores maiores indicam que o conteúdo é mais fácil de lembrar.");
-                    }}
-                  />
+                <div className="bg-muted/50 rounded-xl p-4 relative">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-xs text-muted-foreground">Facilidade Média</p>
+                    <Info
+                      className="w-3 h-3 text-muted-foreground cursor-pointer hover:text-indigo-500 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setInfoText("Média de facilidade dos cards (SM-2). 2.5 é o padrão: valores acima indicam que o conteúdo é fácil de lembrar, enquanto valores abaixo indicam que é mais desafiador.");
+                      }}
+                    />
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-2xl font-bold text-indigo-500">{session.stats.average_ease_factor}</p>
+                    <span className={`text-xs font-medium ${getEaseFactorLabel(session.stats.average_ease_factor).color}`}>
+                      {getEaseFactorLabel(session.stats.average_ease_factor).label}
+                    </span>
+                  </div>
                 </div>
-                <p className="text-2xl font-bold text-indigo-500">{session.stats.average_ease_factor}</p>
-              </div>
             </div>
           )}
 
@@ -374,39 +386,27 @@ export default function ReviewPage() {
         <div className="grid grid-cols-4 gap-3 animate-scale-in">
           <button
             onClick={() => handleRating("again")}
-            className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-red-500/30 bg-red-500/5 hover:bg-red-500/10 hover:border-red-500 transition-all group"
+            className="cursor-pointer flex flex-col items-center justify-center p-4 rounded-xl border-2 border-red-500/30 bg-red-500/5 hover:bg-red-500/10 hover:border-red-500 transition-all group"
           >
-            <span className="text-sm font-semibold text-red-500 mb-1">Errei</span>
-            <span className="text-xs text-muted-foreground group-hover:text-red-400">
-              &lt; 1 min
-            </span>
+            <span className="text-sm font-semibold text-red-500">Errei</span>
           </button>
           <button
             onClick={() => handleRating("hard")}
-            className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10 hover:border-amber-500 transition-all group"
+            className="cursor-pointer flex flex-col items-center justify-center p-4 rounded-xl border-2 border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10 hover:border-amber-500 transition-all group"
           >
-            <span className="text-sm font-semibold text-amber-500 mb-1">Difícil</span>
-            <span className="text-xs text-muted-foreground group-hover:text-amber-400">
-              {currentCard?.interval ? Math.round(currentCard.interval * 1.2) : 1} dias
-            </span>
+            <span className="text-sm font-semibold text-amber-500">Difícil</span>
           </button>
           <button
             onClick={() => handleRating("good")}
-            className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500 transition-all group"
+            className="cursor-pointer flex flex-col items-center justify-center p-4 rounded-xl border-2 border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500 transition-all group"
           >
-            <span className="text-sm font-semibold text-emerald-500 mb-1">Bom</span>
-            <span className="text-xs text-muted-foreground group-hover:text-emerald-400">
-              {currentCard?.interval ? Math.round(currentCard.interval * 2.5) : 1} dias
-            </span>
+            <span className="text-sm font-semibold text-emerald-500">Bom</span>
           </button>
           <button
             onClick={() => handleRating("easy")}
-            className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-purple-500/30 bg-purple-500/5 hover:bg-purple-500/10 hover:border-purple-500 transition-all group"
+            className="cursor-pointer flex flex-col items-center justify-center p-4 rounded-xl border-2 border-purple-500/30 bg-purple-500/5 hover:bg-purple-500/10 hover:border-purple-500 transition-all group"
           >
-            <span className="text-sm font-semibold text-purple-500 mb-1">Fácil</span>
-            <span className="text-xs text-muted-foreground group-hover:text-purple-400">
-              {currentCard?.interval ? Math.round(currentCard.interval * 3.5) : 4} dias
-            </span>
+            <span className="text-sm font-semibold text-purple-500">Fácil</span>
           </button>
         </div>
       )}
