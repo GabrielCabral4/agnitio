@@ -1,10 +1,17 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 
 export function Navbar() {
   const { logout, isAuthenticated } = useAuth();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timeout);
+  }, []);
 
   return (
     <div className="flex items-center justify-between">
@@ -29,7 +36,7 @@ export function Navbar() {
         >
           Nova sessão
         </Link>
-        {isAuthenticated && (
+        {mounted && isAuthenticated && (
           <button
             onClick={logout}
             className="text-sm text-muted-foreground hover:text-red-500 px-3 py-1.5 rounded-lg hover:bg-red-500/10 transition-colors cursor-pointer"

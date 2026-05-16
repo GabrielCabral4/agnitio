@@ -34,7 +34,8 @@ export default function Home() {
   const [editTitle, setEditTitle] = useState("");
 
   useEffect(() => {
-    setMounted(true);
+    const timeout = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timeout);
   }, []);
 
   useEffect(() => {""

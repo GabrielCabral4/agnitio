@@ -25,6 +25,12 @@ export default function SessionDetail() {
     learned_percentage: number;
   } | null>(null);
   const [infoText, setInfoText] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timeout);
+  }, []);
 
   useEffect(() => {
     api.getSession(id)
@@ -60,7 +66,7 @@ export default function SessionDetail() {
     setFlipped((prev) => ({ ...prev, [index]: !prev[index] }));
   }
 
-  if (isLoading || !isAuthenticated) {
+  if (isLoading || !isAuthenticated || !mounted) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"/>
@@ -369,7 +375,7 @@ export default function SessionDetail() {
                 >
                   <div className="flip-card-inner h-full">
                     {/* Front */}
-                    <div className="flip-card-front card p-4 sm:p-5 min-h-[140px] sm:min-h-[180px] flex flex-col justify-center hover:border-indigo-500/30 transition-colors">
+                    <div className="flip-card-front card p-4 sm:p-5 min-h-[200px] sm:min-h-[220px] flex flex-col justify-center hover:border-indigo-500/30 transition-colors">
                       <div className="flex items-center gap-2 mb-3">
                         <span className="text-xs font-medium text-indigo-500 bg-indigo-500/10 px-2 py-1 rounded-full">
                           Frente
@@ -382,7 +388,7 @@ export default function SessionDetail() {
                       </div>
                     </div>
                     {/* Back */}
-                    <div className="flip-card-back card p-5 min-h-[180px] flex flex-col justify-center bg-linear-to-br from-indigo-500/5 to-purple-500/5 overflow-y-auto">
+                    <div className="flip-card-back card p-5 min-h-[200px] sm:min-h-[220px] flex flex-col justify-center bg-linear-to-br from-indigo-500/5 to-purple-500/5 overflow-y-auto">
                       <div className="flex items-center gap-2 mb-3">
                         <span className="text-xs font-medium text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-full">
                           Verso

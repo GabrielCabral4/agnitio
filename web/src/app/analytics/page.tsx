@@ -20,6 +20,7 @@ export default function AnalyticsPage() {
   const { isLoading, isAuthenticated } = useRequireAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const [data, setData] = useState<{
     total_sessions: number;
     total_quizzes: number;
@@ -34,15 +35,19 @@ export default function AnalyticsPage() {
   } | null>(null);
 
   useEffect(() => {
+    const timeout = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timeout);
+  }, []);
+
+  useEffect(() => {
     if (isAuthenticated) {
       api.getAnalytics()
         .then((res) => {
-          setData({
-            ...res,
-            recent_sessions: []
-          });
+          setData(res);
         })
-        .catch(console.error)
+        .catch((err) => {
+          console.error("Analytics error:", err);
+        })
         .finally(() => setLoading(false));
     } else if (!isLoading) {
       if (loading) {
@@ -51,7 +56,7 @@ export default function AnalyticsPage() {
     }
   }, [isAuthenticated, isLoading, loading]);
 
-  if (isLoading || !isAuthenticated) {
+  if (!mounted || isLoading || !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />

@@ -330,7 +330,6 @@ export default function QuizPage() {
         {attempt.questions.map((q, qi) => {
           const selected = answers[qi];
           const correct = attempt.answers ? q.correct_index : null;
-          const isAnswered = selected !== undefined;
 
           return (
             <div
