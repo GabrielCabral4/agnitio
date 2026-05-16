@@ -7,7 +7,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from app.database import get_db
 from app.models.session import StudySession, StudyMaterial, QuizAttempt, FlashCardReview
 from app.schemas.session import (
-    SessionCreate, SessionResponse,
+    SessionCreate, SessionUpdate, SessionResponse,
     QuizAttemptResponse, QuizSubmit,
     FlashCardReviewResponse, ReviewSessionResponse, ReviewSubmit
 )
@@ -77,9 +77,13 @@ def get_analytics(db: Session = Depends(get_db), current_user=Depends(get_curren
     """
     Retorna estatísticas gerais da plataforma para o dashboard de analytics.
     """
-    now = datetime.now()
-    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    week_start = today_start - timedelta(days=7)
+    now_local = datetime.now()
+    today_start = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    today_start_utc = today_start.astimezone(timezone.utc).replace(tzinfo=None)
+    week_start_utc = today_start_utc - timedelta(days=7)
+
+    now = datetime.now(timezone.utc)
 
     # Total sessions (filtered by user)
     total_sessions = db.query(StudySession).filter(StudySession.user_id == current_user.id).count()
@@ -119,30 +123,34 @@ def get_analytics(db: Session = Depends(get_db), current_user=Depends(get_curren
     quizzes_today = db.query(QuizAttempt).join(StudySession).filter(
         StudySession.user_id == current_user.id,
         QuizAttempt.answers.isnot(None),
-        QuizAttempt.created_at >= today_start
+        QuizAttempt.created_at >= today_start_utc
     ).count()
 
     # Quizzes this week
     quizzes_this_week = db.query(QuizAttempt).join(StudySession).filter(
         StudySession.user_id == current_user.id,
         QuizAttempt.answers.isnot(None),
-        QuizAttempt.created_at >= week_start
+        QuizAttempt.created_at >= week_start_utc
     ).count()
 
     # Weekly activity (last 7 days)
     weekly_activity = []
     for i in range(6, -1, -1):
-        day_start = today_start - timedelta(days=i)
-        day_end = day_start + timedelta(days=1)
+        day_start_local = today_start - timedelta(days=i)
+        day_end_local = day_start_local + timedelta(days=1)
+
+        day_start_utc = day_start_local.astimezone(timezone.utc).replace(tzinfo=None)
+        day_end_utc = day_end_local.astimezone(timezone.utc).replace(tzinfo=None)
+
         count = db.query(QuizAttempt).join(StudySession).filter(
             StudySession.user_id == current_user.id,
             QuizAttempt.answers.isnot(None),
-            QuizAttempt.created_at >= day_start,
-            QuizAttempt.created_at < day_end
+            QuizAttempt.created_at >= day_start_utc,
+            QuizAttempt.created_at < day_end_utc
         ).count()
         weekly_activity.append({
-            "date": day_start.strftime("%Y-%m-%d"),
-            "day": day_start.strftime("%a"),
+            "date": day_start_local.strftime("%Y-%m-%d"),
+            "day": day_start_local.strftime("%a"),
             "count": count
         })
 
@@ -389,6 +397,18 @@ def get_session(session_id: str, db: Session = Depends(get_db), current_user=Dep
     db_session = db.query(StudySession).filter(StudySession.id == session_id, StudySession.user_id == current_user.id).first()
     if not db_session:
         raise HTTPException(status_code=404, detail="Sessão não encontrada")
+    return db_session
+
+
+@router.patch("/{session_id}", response_model=SessionResponse)
+def update_session(session_id: str, session_update: SessionUpdate, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    db_session = db.query(StudySession).filter(StudySession.id == session_id, StudySession.user_id == current_user.id).first()
+    if not db_session:
+        raise HTTPException(status_code=404, detail="Sessão não encontrada")
+
+    db_session.title = session_update.title
+    db.commit()
+    db.refresh(db_session)
     return db_session
 
 @router.get("/{session_id}/export")
