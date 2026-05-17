@@ -16,4 +16,4 @@ class User(Base):
     is_demo = Column(Boolean, default=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
-    sessions = relationship("StudySession", back_populates="user")
+    sessions = relationship("StudySession", back_populates="user", cascade="all, delete-orphan")
