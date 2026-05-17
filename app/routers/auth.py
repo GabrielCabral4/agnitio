@@ -75,8 +75,13 @@ def login(user_in: UserCreate, db: Session = Depends(get_db)):
 @router.post("/demo", response_model=Token)
 def login_demo(db: Session = Depends(get_db)):
     cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=1)
-    db.query(User).filter(User.is_demo, User.created_at < cutoff).delete()
+
+    # Find old demo users and delete them individually to trigger SQLAlchemy cascades
+    old_demo_users = db.query(User).filter(User.is_demo, User.created_at < cutoff).all()
+    for user in old_demo_users:
+        db.delete(user)
     db.commit()
+
 
     demo_email = f"demo-{uuid.uuid4()}@example.com"
     demo_user = User(
