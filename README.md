@@ -1,112 +1,112 @@
-# Agnitio — Inteligência Artificial para Estudos Ativos 🧠
+# Agnitio — Artificial Intelligence for Active Learning 🧠
 
-Agnitio é uma plataforma de aprendizado de alta performance que utiliza Inteligência Artificial para transformar conteúdos passivos (textos e PDFs) em materiais de estudo ativos, combatendo a curva do esquecimento e otimizando a retenção de conhecimento.
+Agnitio is a high-performance learning platform that uses Artificial Intelligence to transform passive content (texts and PDFs) into active study materials, fighting the forgetting curve and optimizing knowledge retention.
 
-## 🚀 Funcionalidades Principais
+## 🚀 Main Features
 
-### 🤖 Geração Inteligente de Materiais
-- **Transformação de Conteúdo**: Upload de PDFs ou colagem de textos que são processados por LLMs para extração de conceitos chave.
-- **Resumos Estruturados**: Geração de resumos condensados e organizados para revisão rápida.
-- **Flashcards Automáticos**: Criação de pares de pergunta/resposta focados nos pontos mais importantes do conteúdo.
+### 🤖 Intelligent Material Generation
+- **Content Transformation**: Upload PDFs or paste text that is processed by LLMs to extract key concepts.
+- **Asynchronous Workflow**: Background material generation, allowing users to keep browsing while the AI processes the content.
+- **Structured Summaries**: Generation of condensed, well-organized summaries for quick review.
+- **Automatic Flashcards**: Creation of question/answer pairs focused on the most important points in the content.
 
-### 📈 Sistema de Retenção e Performance
-- **Repetição Espaçada (SRS)**: Implementação de algoritmo de *Spaced Repetition System* para agendar a revisão de flashcards com base na dificuldade e performance do usuário.
-- **Quizzes Adaptativos**: Geração de testes de múltipla escolha com feedback imediato.
-- **Análise de Desempenho**: Monitoramento de progresso com estatísticas de memorização (cards novos, pendentes e consolidados).
-- **Feedback da IA**: Análise personalizada do desempenho no quiz, sugerindo pontos de melhoria.
+### 📈 Retention and Performance System
+- **Spaced Repetition (SRS)**: Implementation of the **SM-2** algorithm to schedule flashcard reviews based on user performance (Again, Hard, Good, Easy), optimizing long-term memorization.
+- **Adaptive Quizzes**: Generation of multiple-choice tests with immediate, educational AI feedback.
+- **Analytics Dashboard**: Full progress tracking, including memorization statistics, weekly activity, and performance score.
+- **AI Feedback**: Personalized analysis of quiz performance, suggesting areas for improvement.
 
-### 🛠️ Ferramentas de Produtividade
-- **Exportação para PDF**: Geração de documentos PDF com o conteúdo da sessão para consulta offline.
-- **Gestão de Sessões**: Organização de diferentes temas de estudo em sessões independentes.
-- **Autenticação Segura**: Sistema de contas para persistência de progresso e sincronização de dados.
+### 🛠️ Productivity Tools
+- **PDF Export**: Generation of complete study guides in PDF format, including summaries, flashcards, and quiz question banks.
+- **Session Management**: Organization of different study topics into independent sessions.
+- **Secure Authentication**: Account system for persistence of progress and data synchronization.
 
-## 🛠️ Stack Tecnológica
+## 🛠️ Tech Stack
 
 ### Backend
-- **Linguagem**: Python 3.11+
-- **Framework**: [FastAPI](https://fastapi.tiangolo.com/) (API REST de alta performance)
-- **IA**: [Google Gemini](https://ai.google.dev/) (`gemini-2.5-flash`) via `google-genai`
-- **Banco de Dados**: PostgreSQL (via [Supabase](https://supabase.com/))
-- **ORM & Migrations**: SQLAlchemy 2.0 e Alembic
-- **Gerenciador de Pacotes**: `uv` (estatisticamente mais rápido que pip/poetry)
+- **Language**: Python 3.11+
+- **Framework**: [FastAPI](https://fastapi.tiangolo.com/) (high-performance REST API)
+- **AI**: [Google Gemini](https://ai.google.dev/) via `google-genai`
+- **Database**: PostgreSQL (via [Supabase](https://supabase.com/))
+- **ORM & Migrations**: SQLAlchemy 2.0 and Alembic
+- **Package Manager**: `uv`
 
 ### Frontend
 - **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
-- **Linguagem**: TypeScript
-- **Estilização**: Tailwind CSS
-- **Componentes & Ícones**: Lucide React, Sonner (Toasts)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Components & Icons**: Lucide React, Sonner (Toasts)
 
-## 📐 Arquitetura e Decisões Técnicas
+## 📐 Architecture and Technical Decisions
 
-O projeto foi desenhado focando em robustez e experiência do usuário:
+The project was designed with robustness and user experience in mind:
 
-- **Structured Output (LLM)**: Implementação de prompts rigorosos e validação via Pydantic para garantir que a IA retorne JSONs previsíveis, eliminando erros de parsing no frontend.
-- **Estratégia de Dados**: Uso de colunas JSON no PostgreSQL para armazenar flashcards e questões, equilibrando a flexibilidade de esquemas não-relacionais com a consistência do SQL.
-- **Algoritmo SRS**: Implementação de lógica de repetição espaçada para otimizar o tempo de estudo, focando nos cards com maior probabilidade de esquecimento.
-- **UX/UI Modern**: Interface responsiva com animações fluidas, estados de loading granulares e feedback instantâneo.
+- **Resilient AI**: Implementation of a model priority list (fallback), retries with exponential backoff for 429/503 errors, and parallel processing of AI tasks to reduce latency.
+- **Structured Output (LLM)**: Implementation of strict prompts and validation via Pydantic to ensure the AI returns predictable JSON.
+- **Data Strategy**: Use of JSON columns in PostgreSQL to store flashcards and questions, balancing the flexibility of non-relational schemas with SQL consistency.
+- **SM-2 Algorithm**: Rigorous implementation of the spaced repetition logic to automate the review schedule.
+- **Modern UX/UI**: Responsive interface optimized for mobile devices, with fluid animations and instant feedback.
 
-## 🎯 Desafios Técnicos Superados
+## 🎯 Technical Challenges Overcome
 
-- **Consistência da IA**: Superação da natureza não-determinística de LLMs através de *few-shot prompting* e validação de esquemas.
-- **Performance de PDF**: Implementação de extração de texto eficiente para lidar com documentos extensos sem degradar a performance da API.
-- **Sincronização de Estado**: Gestão de estado complexa no frontend para lidar com a alternância entre visualização de cards, quizzes e estatísticas em tempo real.
+- **AI Consistency**: Overcoming the non-deterministic nature of LLMs through *few-shot prompting* and schema validation.
+- **PDF Performance**: Implementation of efficient text extraction to handle large documents without degrading API performance.
+- **State Synchronization**: Complex frontend state management to handle switching between card view, quizzes, and real-time statistics.
 
-## 🛠️ CI/CD e Qualidade de Código
+## 🛠️ CI/CD and Code Quality
 
-Para garantir a estabilidade do projeto e a qualidade do código, implementei um pipeline de **Integração Contínua (CI)** via GitHub Actions:
+To ensure project stability and code quality, I implemented a **Continuous Integration (CI)** pipeline via GitHub Actions:
 
-- **Backend**: Execução automática de testes de integração com `pytest` em cada push ou pull request.
-- **Frontend**: Verificação de tipagem (TypeScript) e linting automático para garantir consistência e evitar bugs em runtime.
-- **Validação**: Bloqueio de merges que quebrem os testes ou a build do frontend.
+- **Backend**: Automatic execution of integration tests with `pytest` on every push or pull request.
+- **Frontend**: Type checking (TypeScript) and automatic linting to ensure consistency and prevent runtime bugs.
+- **Validation**: Blocking merges that break tests or the frontend build.
 
-## ⚙️ Como Executar o Projeto
+## ⚙️ How to Run the Project
 
-
-### Pré-requisitos
+### Prerequisites
 - Python 3.11+
 - Node.js 18+
-- Uma chave de API do Google Gemini
+- A Google Gemini API key
 
-### Passo a Passo
+### Step by Step
 
-1. **Clone o repositório**
+1. **Clone the repository**
    ```bash
-   git clone https://github.com/seu-usuario/agnitio.git
+   git clone https://github.com/your-username/agnitio.git
    cd agnitio
    ```
 
-2. **Configuração do Backend**
+2. **Backend setup**
    ```bash
-   # Instale o uv
+   # Install uv
    curl -LsSf https://astral.sh/uv/install.sh | sh
-
-   # Instale as dependências
+   
+   # Install dependencies
    uv sync
-
-   # Configure as variáveis de ambiente no arquivo .env
+   
+   # Configure environment variables in the .env file
    # DATABASE_URL=...
    # GEMINI_API_KEY=...
-
-   # Execute as migrações do banco
+   
+   # Run database migrations
    uv run alembic upgrade head
-
-   # Inicie o servidor
+   
+   # Start the server
    uv run uvicorn app.main:app --reload
    ```
 
-3. **Configuração do Frontend**
+3. **Frontend setup**
    ```bash
    cd web
    npm install
-
+   
    # Configure .env.local
    # NEXT_PUBLIC_API_URL=http://localhost:8000
 
    npm run dev
    ```
 
-## 📌 Status do Projeto
-✅ MVP Completo | 🔄 Em evolução (Novas integrações de IA e melhorias de UX)
-
+## 📌 Project Status
+✅ MVP Complete | 🔄 Evolving (SRS, Analytics, and PDF Export systems implemented)
 ---
-**Engenharia de Software**, **Integração de LLMs** e **Desenvolvimento Fullstack**.
+**Software Engineering**, **LLM Integration** e **Fullstack Development**.
