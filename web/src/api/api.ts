@@ -275,7 +275,7 @@ export const api = {
 
   async loginDemo(): Promise<{ access_token: string; token_type: string }> {
     const res = await fetch(`${API_URL}/auth/demo`, {
-      method: "GET",
+      method: "POST",
       headers: getAuthHeader() as AuthHeaders,
     });
     return handleResponse(res);

@@ -72,10 +72,10 @@ def login(user_in: UserCreate, db: Session = Depends(get_db)):
         "token_type": "bearer"
     }
 
-@router.get("/demo", response_model=Token)
+@router.post("/demo", response_model=Token)
 def login_demo(db: Session = Depends(get_db)):
-    cutoff = datetime.now(timezone.utc) - timedelta(days=1)
-    db.query(User).filter(User.is_demo == True, User.created_at < cutoff).delete()
+    cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=1)
+    db.query(User).filter(User.is_demo, User.created_at < cutoff).delete()
     db.commit()
 
     demo_email = f"demo-{uuid.uuid4()}@example.com"
